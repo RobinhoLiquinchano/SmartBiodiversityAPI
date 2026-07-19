@@ -10,8 +10,4 @@
     <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.3.11" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="DTOs\Aviso\" />
-  </ItemGroup>
-
 </Project>
