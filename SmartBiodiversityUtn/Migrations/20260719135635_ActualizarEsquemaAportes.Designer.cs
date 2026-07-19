@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SmartBiodiversityUtn.Data;
 
@@ -11,9 +12,11 @@ using SmartBiodiversityUtn.Data;
 namespace SmartBiodiversityUtn.Migrations
 {
     [DbContext(typeof(SmartBiodiversityUtnContext))]
-    partial class SmartBiodiversityUtnContextModelSnapshot : ModelSnapshot
+    [Migration("20260719135635_ActualizarEsquemaAportes")]
+    partial class ActualizarEsquemaAportes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -27,6 +27,7 @@ builder.Services.AddScoped<ICategoriaService, CategoriaService>();
 builder.Services.AddScoped<IEspecieService, EspecieService>();
 builder.Services.AddHttpClient<IMultimediaService, MultimediaService>();
 builder.Services.AddScoped<IMultimediaService, MultimediaService>();
+builder.Services.AddScoped<IAporteService, AporteService>();
 
 // ====================== JWT AUTHENTICATION ======================
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

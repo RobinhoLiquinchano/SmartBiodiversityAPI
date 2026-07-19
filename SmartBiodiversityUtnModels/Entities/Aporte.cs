@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SmartBiodiversityUtnModels.DTOs;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -10,26 +11,36 @@ namespace SmartBiodiversityUtnModels.Entities
     public class Aporte
     {
         [Key]
-        public string IdAportes { get; set; } = Guid.NewGuid().ToString("N");
+        public string IdAporte { get; set; } = Guid.NewGuid().ToString("N");
 
         [Required]
         [ForeignKey(nameof(Usuario))]
-        public string IdUsuarioApo { get; set; }
+        public string IdUsuarioApo { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(250)]
-        public string DescripcionApo { get; set; } = string.Empty;
+        [MaxLength(200)]
+        public string TituloApo { get; set; } = string.Empty;
 
-        [MaxLength(250)]
-        public string? RutaImagenApo { get; set; }
+        [MaxLength(500)]
+        public string? DescripcionApo { get; set; }
+
+        //[Required]
+        //[MaxLength(100)]
+        //public string TipoApo { get; set; } = string.Empty; // Foto, Información, Video, etc.
+
+        [MaxLength(300)]
+        public string? RutaArchivoApo { get; set; }
 
         [Required]
-        [MaxLength(20)]
-        public string EstadoApo { get; set; } = string.Empty;
+        public EstadoAporte EstadoApo { get; set; } = EstadoAporte.Pendiente;
 
-        public DateTime FechaApo { get; set; }
+        public DateTime FechaCreacionApo { get; set; }
+
+        public DateTime? FechaAprobacionApo { get; set; }
 
         // Propiedad de navegación
         public Usuario Usuario { get; set; } = null!;
     }
 }
+
+
