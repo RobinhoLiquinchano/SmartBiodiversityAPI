@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartBiodiversityUtn.Services;
 using SmartBiodiversityUtnModels.DTOs.Multimedia;
+using System.Security.Claims;
 
 namespace SmartBiodiversityUtn.Controllers
 {
@@ -9,33 +10,30 @@ namespace SmartBiodiversityUtn.Controllers
     [ApiController]
     public class MultimediasController(IMultimediaService multimediaService) : ControllerBase
     {
-
-
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<MultimediaResponse>>> GetAll()
-        {
-            var result = await multimediaService.GetMultimediaByEspecieIdAsync();
-            return Ok(result);
-        }
+            => Ok(await multimediaService.GetMultimediaByEspecieIdAsync());
 
         [HttpGet("{especieId}")]
+        [AllowAnonymous]
         public async Task<ActionResult<MultimediaResponse>> GetByEspecie(string especieId)
         {
             var result = await multimediaService.GetMultimediaByEspecieIdAsync(especieId);
-
-            if (result == null)
-                return NotFound(new { message = $"No se encontró multimedia para la especie {especieId}" });
-
-            return Ok(result);
+            return result is null ? NotFound() : Ok(result);
         }
 
         [HttpPost]
         [Consumes("multipart/form-data")]
+        [Authorize(Roles = "Administrador")]
         public async Task<ActionResult<MultimediaResponse>> Upload([FromForm] CreateMultimediaRequest request)
         {
+            var idUsuario = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(idUsuario)) return Unauthorized();
+
             try
             {
-                var result = await multimediaService.AddMultimediaAsync(request);
+                var result = await multimediaService.AddMultimediaAsync(request, idUsuario);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -45,9 +43,13 @@ namespace SmartBiodiversityUtn.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Delete(string id)
         {
-            var deleted = await multimediaService.DeleteMultimediaAsync(id);
+            var idUsuario = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(idUsuario)) return Unauthorized();
+
+            var deleted = await multimediaService.DeleteMultimediaAsync(id, idUsuario);
             return deleted ? NoContent() : NotFound();
         }
     }

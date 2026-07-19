@@ -2,12 +2,22 @@
 using SmartBiodiversityUtn.Data;
 using SmartBiodiversityUtnModels.DTOs;
 using SmartBiodiversityUtnModels.DTOs.Aporte;
+using SmartBiodiversityUtnModels.DTOs.Bitacora;
 using SmartBiodiversityUtnModels.Entities;
 
 namespace SmartBiodiversityUtn.Services
 {
-    public class AporteService(SmartBiodiversityUtnContext _context) : IAporteService
+    public class AporteService : IAporteService
     {
+        private readonly SmartBiodiversityUtnContext _context;
+        private readonly IBitacoraService _bitacoraService;
+
+        public AporteService(SmartBiodiversityUtnContext context, IBitacoraService bitacoraService)
+        {
+            _context = context;
+            _bitacoraService = bitacoraService;
+        }
+
         public async Task<AporteResponse> CreateAporteAsync(string idUsuario, CreateAporteRequest request)
         {
             var usuario = await _context.Usuarios.FindAsync(idUsuario);
@@ -26,6 +36,14 @@ namespace SmartBiodiversityUtn.Services
 
             _context.Aportes.Add(aporte);
             await _context.SaveChangesAsync();
+
+            // === BITÁCORA ===
+            await _bitacoraService.CreateBitacoraAsync(new CreateBitacoraRequest
+            {
+                IdUsuarioBit = idUsuario,
+                AccionBit = "CREAR_APORTE",
+                DetalleBit = $"Creó el aporte: {request.TituloApo}"
+            });
 
             return MapToAporteResponse(aporte, usuario);
         }
@@ -46,7 +64,6 @@ namespace SmartBiodiversityUtn.Services
                     FechaAprobacionApo = a.FechaAprobacionApo,
                     NombreUsuario = a.Usuario.Nombres + " " + a.Usuario.Apellidos,
                     CorreoUsuario = a.Usuario.Correo
-
                 }).FirstOrDefaultAsync();
 
             return aporte;
@@ -94,7 +111,19 @@ namespace SmartBiodiversityUtn.Services
             aporte.RutaArchivoApo = request.RutaArchivoApo;
 
             _context.Aportes.Update(aporte);
-            return await _context.SaveChangesAsync() > 0;
+            var result = await _context.SaveChangesAsync() > 0;
+
+            if (result)
+            {
+                await _bitacoraService.CreateBitacoraAsync(new CreateBitacoraRequest
+                {
+                    IdUsuarioBit = aporte.IdUsuarioApo,
+                    AccionBit = "EDITAR_APORTE",
+                    DetalleBit = $"Editó el aporte: {aporte.TituloApo}"
+                });
+            }
+
+            return result;
         }
 
         public async Task<bool> DeleteAporteAsync(string idAporte)
@@ -102,8 +131,23 @@ namespace SmartBiodiversityUtn.Services
             var aporte = await _context.Aportes.FindAsync(idAporte);
             if (aporte == null || aporte.EstadoApo == EstadoAporte.Aprobado) return false;
 
+            var titulo = aporte.TituloApo;
+            var usuarioId = aporte.IdUsuarioApo;
+
             _context.Aportes.Remove(aporte);
-            return await _context.SaveChangesAsync() > 0;
+            var result = await _context.SaveChangesAsync() > 0;
+
+            if (result)
+            {
+                await _bitacoraService.CreateBitacoraAsync(new CreateBitacoraRequest
+                {
+                    IdUsuarioBit = usuarioId,
+                    AccionBit = "ELIMINAR_APORTE",
+                    DetalleBit = $"Eliminó el aporte: {titulo}"
+                });
+            }
+
+            return result;
         }
 
         public async Task<bool> ApprovedAporteAsync(string idAporte)
@@ -115,7 +159,19 @@ namespace SmartBiodiversityUtn.Services
             aporte.FechaAprobacionApo = DateTime.UtcNow;
 
             _context.Aportes.Update(aporte);
-            return await _context.SaveChangesAsync() > 0;
+            var result = await _context.SaveChangesAsync() > 0;
+
+            if (result)
+            {
+                await _bitacoraService.CreateBitacoraAsync(new CreateBitacoraRequest
+                {
+                    IdUsuarioBit = aporte.IdUsuarioApo,
+                    AccionBit = "APROBAR_APORTE",
+                    DetalleBit = $"Aprobó el aporte: {aporte.TituloApo}"
+                });
+            }
+
+            return result;
         }
 
         public async Task<bool> RejectedAporteAsync(string idAporte)
@@ -127,7 +183,19 @@ namespace SmartBiodiversityUtn.Services
             aporte.FechaAprobacionApo = DateTime.UtcNow;
 
             _context.Aportes.Update(aporte);
-            return await _context.SaveChangesAsync() > 0;
+            var result = await _context.SaveChangesAsync() > 0;
+
+            if (result)
+            {
+                await _bitacoraService.CreateBitacoraAsync(new CreateBitacoraRequest
+                {
+                    IdUsuarioBit = aporte.IdUsuarioApo,
+                    AccionBit = "RECHAZAR_APORTE",
+                    DetalleBit = $"Rechazó el aporte: {aporte.TituloApo}"
+                });
+            }
+
+            return result;
         }
 
         public async Task<int> GetCountAportesByEstadoAsync(EstadoAporte estado)

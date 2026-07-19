@@ -11,6 +11,7 @@ namespace SmartBiodiversityUtn.Controllers
     [ApiController]
     public class AportesController(IAporteService aporteService) : ControllerBase
     {
+        // Cualquier usuario autenticado puede crear
         [HttpPost("crear")]
         [Authorize]
         public async Task<IActionResult> CreateAporte(CreateAporteRequest request)
@@ -32,6 +33,7 @@ namespace SmartBiodiversityUtn.Controllers
             return aporte != null ? Ok(aporte) : NotFound("Aporte no encontrado.");
         }
 
+        // Solo Administrador puede ver todos
         [HttpGet("listar/todos")]
         [Authorize(Roles = "Administrador")]
         public async Task<ActionResult> GetAllAportes()
@@ -39,6 +41,7 @@ namespace SmartBiodiversityUtn.Controllers
             return Ok(await aporteService.GetAllAportesAsync());
         }
 
+        // Usuario autenticado ve sus propios aportes
         [HttpGet("mis-aportes")]
         [Authorize]
         public async Task<ActionResult> GetMyAportes()
@@ -63,14 +66,16 @@ namespace SmartBiodiversityUtn.Controllers
             return Ok(await aporteService.GetAportesByEstadoAsync(estado));
         }
 
+        // Solo Administrador puede actualizar
         [HttpPut("{id}")]
         [Authorize(Roles = "Administrador")]
         public async Task<ActionResult> UpdateAporte(string id, UpdateAporteRequest request)
         {
             var success = await aporteService.UpdateAporteAsync(id, request);
-            return success ? Ok("Aporte actualizado exitosamente.") : BadRequest("No se pudo actualizar el aporte (quizás no está en estado pendiente).");
+            return success ? Ok("Aporte actualizado exitosamente.") : BadRequest("No se pudo actualizar el aporte.");
         }
 
+        // Solo Administrador puede eliminar
         [HttpDelete("{id}")]
         [Authorize(Roles = "Administrador")]
         public async Task<ActionResult> DeleteAporte(string id)
@@ -79,6 +84,7 @@ namespace SmartBiodiversityUtn.Controllers
             return success ? NoContent() : BadRequest("No se pudo eliminar el aporte.");
         }
 
+        // Solo Administrador
         [HttpPut("{id}/aprobar")]
         [Authorize(Roles = "Administrador")]
         public async Task<ActionResult> ApproveAporte(string id)
@@ -87,6 +93,7 @@ namespace SmartBiodiversityUtn.Controllers
             return success ? Ok("Aporte aprobado.") : BadRequest("Error al aprobar.");
         }
 
+        // Solo Administrador
         [HttpPut("{id}/rechazar")]
         [Authorize(Roles = "Administrador")]
         public async Task<ActionResult> RejectAporte(string id)

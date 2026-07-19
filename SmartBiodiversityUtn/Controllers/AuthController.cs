@@ -18,7 +18,15 @@ namespace SmartBiodiversityUtn.Controllers
             {
                 return BadRequest("User already exists.");
             }
-            return Ok(user);
+            return Ok(new
+            {
+                idUsuario = user.IdUsuario,
+                nombres = user.Nombres,
+                apellidos = user.Apellidos,
+                correo = user.Correo,
+                estado = user.Estado,
+                fechaRegistro = user.FechaRegistro
+            });
         }
 
         [HttpPost("login")]

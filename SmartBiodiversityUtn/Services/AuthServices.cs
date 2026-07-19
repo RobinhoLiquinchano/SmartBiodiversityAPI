@@ -11,11 +11,25 @@ using System.Text;
 
 namespace SmartBiodiversityUtn.Services
 {
-    public class AuthServices(SmartBiodiversityUtnContext context, IConfiguration configuration) : IAuthServices
+    public class AuthServices : IAuthServices
     {
+        private readonly SmartBiodiversityUtnContext _context;
+        private readonly IConfiguration _configuration;
+        private readonly IBitacoraService _bitacoraService;
+
+        public AuthServices(
+            SmartBiodiversityUtnContext context,
+            IConfiguration configuration,
+            IBitacoraService bitacoraService)
+        {
+            _context = context;
+            _configuration = configuration;
+            _bitacoraService = bitacoraService;
+        }
+
         public async Task<TokenResponseDto?> LoginAsync(LoginRequest request)
         {
-            var user = await context.Usuarios
+            var user = await _context.Usuarios
                 .Include(u => u.Rol)
                 .FirstOrDefaultAsync(u => u.Correo == request.Email);
 
@@ -27,12 +41,19 @@ namespace SmartBiodiversityUtn.Services
                 return null;
             }
 
+            // === BITÁCORA: LOGIN ===
+            await BitacoraHelper.RegistrarAccionAsync(
+                _bitacoraService,
+                user.IdUsuario,
+                "LOGIN",
+                "Inicio de sesión exitoso");
+
             return await CreateTokenResponse(user);
         }
 
         public async Task<Usuario?> RegisterAsync(UserDto request)
         {
-            if (await context.Usuarios.AnyAsync(u => u.Correo == request.Correo))
+            if (await _context.Usuarios.AnyAsync(u => u.Correo == request.Correo))
                 return null;
 
             var user = new Usuario
@@ -45,11 +66,18 @@ namespace SmartBiodiversityUtn.Services
                 Estado = "Activo",
                 FechaRegistro = DateTime.UtcNow,
                 IntentosFallidos = 0,
-                IdRolesU = "2"
+                IdRolesU = "2" // Visitante por defecto
             };
 
-            context.Usuarios.Add(user);
-            await context.SaveChangesAsync();
+            _context.Usuarios.Add(user);
+            await _context.SaveChangesAsync();
+
+            // === BITÁCORA: REGISTRO ===
+            await BitacoraHelper.RegistrarAccionAsync(
+                _bitacoraService,
+                user.IdUsuario,
+                "REGISTRO",
+                $"Usuario registrado: {user.Correo}");
 
             return user;
         }
@@ -58,6 +86,13 @@ namespace SmartBiodiversityUtn.Services
         {
             var user = await ValidateTokenRefreshTokenAsync(requestDto.UserId, requestDto.RefreshToken);
             if (user is null) return null;
+
+            // === BITÁCORA: REFRESH TOKEN ===
+            await BitacoraHelper.RegistrarAccionAsync(
+                _bitacoraService,
+                user.IdUsuario,
+                "REFRESH_TOKEN",
+                "Renovación de token");
 
             return await CreateTokenResponse(user);
         }
@@ -73,7 +108,7 @@ namespace SmartBiodiversityUtn.Services
 
         private async Task<Usuario?> ValidateTokenRefreshTokenAsync(string userId, string refreshToken)
         {
-            var user = await context.Usuarios.FirstOrDefaultAsync(u => u.IdUsuario == userId);
+            var user = await _context.Usuarios.FirstOrDefaultAsync(u => u.IdUsuario == userId);
             if (user is null || user.RefreshToken != refreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
                 return null;
 
@@ -86,7 +121,7 @@ namespace SmartBiodiversityUtn.Services
             user.RefreshToken = refreshToken;
             user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
 
-            await context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
             return refreshToken;
         }
 
@@ -107,12 +142,12 @@ namespace SmartBiodiversityUtn.Services
                 new Claim(ClaimTypes.Role, user.Rol?.NombreRol ?? "Visitante")
             };
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["AppSettings:Token"]!));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["AppSettings:Token"]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
 
             var token = new JwtSecurityToken(
-                issuer: configuration["AppSettings:Issuer"],
-                audience: configuration["AppSettings:Audience"],
+                issuer: _configuration["AppSettings:Issuer"],
+                audience: _configuration["AppSettings:Audience"],
                 claims: claims,
                 expires: DateTime.UtcNow.AddDays(1),
                 signingCredentials: creds

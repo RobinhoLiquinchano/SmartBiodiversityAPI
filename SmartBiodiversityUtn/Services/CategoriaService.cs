@@ -2,14 +2,21 @@
 using SmartBiodiversityUtn.Data;
 using SmartBiodiversityUtnModels.DTOs.Categoria;
 using SmartBiodiversityUtnModels.Entities;
-using System.Security.Claims;
 
 namespace SmartBiodiversityUtn.Services
 {
-    public class CategoriaService(
-        SmartBiodiversityUtnContext context) : ICategoriaService
+    public class CategoriaService : ICategoriaService
     {
-        public async Task<CategoriaResponse> CreateCategoriaAsync(CreateCategoriaRequest categoria)
+        private readonly SmartBiodiversityUtnContext _context;
+        private readonly IBitacoraService _bitacoraService;
+
+        public CategoriaService(SmartBiodiversityUtnContext context, IBitacoraService bitacoraService)
+        {
+            _context = context;
+            _bitacoraService = bitacoraService;
+        }
+
+        public async Task<CategoriaResponse> CreateCategoriaAsync(CreateCategoriaRequest categoria, string idUsuario)
         {
             var newCategoria = new Categoria
             {
@@ -17,68 +24,71 @@ namespace SmartBiodiversityUtn.Services
                 NombreCat = categoria.Nombre
             };
 
-            context.Categorias.Add(newCategoria);
-            await context.SaveChangesAsync();
+            _context.Categorias.Add(newCategoria);
+            await _context.SaveChangesAsync();
 
-            return new CategoriaResponse
-            {
-                Id = newCategoria.IdCategorias,
-                Nombre = newCategoria.NombreCat
-            };
+            await BitacoraHelper.RegistrarAccionAsync(_bitacoraService, idUsuario, "CREAR_CATEGORIA",
+                $"Creó la categoría: {categoria.Nombre}");
+
+            return new CategoriaResponse { Id = newCategoria.IdCategorias, Nombre = newCategoria.NombreCat };
         }
 
-        public async Task<bool> DeleteCategoriaAsync(string id)
+        public async Task<bool> DeleteCategoriaAsync(string id, string idUsuario)
         {
-            var existingCategoria = await context.Categorias.FirstOrDefaultAsync(c => c.IdCategorias == id);
+            var existing = await _context.Categorias.FirstOrDefaultAsync(c => c.IdCategorias == id);
+            if (existing is null) return false;
 
-            if (existingCategoria is null)
+            var nombre = existing.NombreCat;
+            _context.Categorias.Remove(existing);
+            var result = await _context.SaveChangesAsync() > 0;
+
+            if (result)
             {
-                return false;
+                await BitacoraHelper.RegistrarAccionAsync(_bitacoraService, idUsuario, "ELIMINAR_CATEGORIA",
+                    $"Eliminó la categoría: {nombre}");
             }
-            var nombre = existingCategoria.NombreCat;
-
-            context.Categorias.Remove(existingCategoria);
-            await context.SaveChangesAsync();
-
-            return true;
-        }
-
-        public async Task<IEnumerable<CategoriaResponse>> GetAllCategoriasAsync()
-        => await context.Categorias.Select(c => new CategoriaResponse
-        {
-            Id = c.IdCategorias,
-            Nombre = c.NombreCat
-        }).ToListAsync();
-
-        public async Task<CategoriaResponse?> GetCategoriaByIdAsync(string id)
-        {
-            var result = await context.Categorias
-                .Where(c => c.IdCategorias == id)
-                .Select(c => new CategoriaResponse
-                {
-                    Id = c.IdCategorias,
-                    Nombre = c.NombreCat
-                }).FirstOrDefaultAsync();
 
             return result;
         }
 
-        public async Task<bool> UpdateCategoriaAsync(string id, UpdateCategoriaRequest categoria)
-        {
-            var existingCategoria = await context.Categorias.FirstOrDefaultAsync(c => c.IdCategorias == id);
+        public async Task<IEnumerable<CategoriaResponse>> GetAllCategoriasAsync()
+            => await _context.Categorias
+                .Select(c => new CategoriaResponse { Id = c.IdCategorias, Nombre = c.NombreCat })
+                .ToListAsync();
 
-            if (existingCategoria is null)
+        public async Task<CategoriaResponse?> GetCategoriaByIdAsync(string id)
+        {
+            return await _context.Categorias
+                .Where(c => c.IdCategorias == id)
+                .Select(c => new CategoriaResponse { Id = c.IdCategorias, Nombre = c.NombreCat })
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<bool> UpdateCategoriaAsync(string id, UpdateCategoriaRequest categoria, string idUsuario)
+        {
+            var existing = await _context.Categorias.FirstOrDefaultAsync(c => c.IdCategorias == id);
+            if (existing is null) return false;
+
+            existing.NombreCat = categoria.Nombre ?? existing.NombreCat;
+            var result = await _context.SaveChangesAsync() > 0;
+
+            if (result)
             {
-                return false;
+                await BitacoraHelper.RegistrarAccionAsync(_bitacoraService, idUsuario, "EDITAR_CATEGORIA",
+                    $"Editó la categoría: {existing.NombreCat}");
             }
 
-            existingCategoria.NombreCat = categoria.Nombre ?? existingCategoria.NombreCat;
-
-            var nombreAnterior = existingCategoria.NombreCat;
-            existingCategoria.NombreCat = categoria.Nombre ?? existingCategoria.NombreCat;
-
-            await context.SaveChangesAsync();
-            return true;
+            return result;
         }
+
+        // Sobrecargas antiguas (compatibilidad)
+        public async Task<CategoriaResponse> CreateCategoriaAsync(CreateCategoriaRequest categoria)
+            => await CreateCategoriaAsync(categoria, "SYSTEM");
+
+        public async Task<bool> DeleteCategoriaAsync(string id)
+            => await DeleteCategoriaAsync(id, "SYSTEM");
+
+        public async Task<bool> UpdateCategoriaAsync(string id, UpdateCategoriaRequest categoria)
+            => await UpdateCategoriaAsync(id, categoria, "SYSTEM");
     }
 }
