@@ -3,16 +3,13 @@ using SmartBiodiversityUtn.Data;
 using SmartBiodiversityUtnModels.DTOs.Multimedia;
 using SmartBiodiversityUtnModels.Entities;
 using System.Net.Http.Headers;
-using System.Security.Claims;
 
 namespace SmartBiodiversityUtn.Services
 {
     public class MultimediaService(
             SmartBiodiversityUtnContext _context,
             IConfiguration _configuration,
-            HttpClient _httpClient,
-            IBitacoraService _bitacora,
-        IHttpContextAccessor _httpContextAccessor) : IMultimediaService
+            HttpClient _httpClient) : IMultimediaService
     {
 
         public async Task<MultimediaResponse> AddMultimediaAsync(CreateMultimediaRequest request)
@@ -73,14 +70,6 @@ namespace SmartBiodiversityUtn.Services
             _context.Multimedia.Add(multimedia);
             await _context.SaveChangesAsync();
 
-            // LOG: Multimedia subida
-            var currentUserId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            await _bitacora.RegistrarAccionComoAsync(
-                currentUserId ?? "SYSTEM",
-                "SUBIR_MULTIMEDIA",
-                $"Archivo subido: {request.Archivo.FileName} ({request.TipoArchivo}) - Especie: {especie?.NombreComunEsp} (ID: {request.EspecieId}) - URL: {publicUrl}");
-
             return new MultimediaResponse
             {
                 IdMultimedia = multimedia.IdMultimedia,
@@ -89,9 +78,9 @@ namespace SmartBiodiversityUtn.Services
                 RutaArchivo = multimedia.RutaArchivoMul,
                 Fecha = multimedia.FechaMul
             };
-
         }
 
+        // Determina la subcarpeta del bucket según el nombre de la categoría de la especie
         private static string ObtenerCarpetaPorCategoria(string? nombreCategoria)
         {
             if (string.IsNullOrWhiteSpace(nombreCategoria))
@@ -148,3 +137,4 @@ namespace SmartBiodiversityUtn.Services
             }).ToListAsync();
     }
 }
+
