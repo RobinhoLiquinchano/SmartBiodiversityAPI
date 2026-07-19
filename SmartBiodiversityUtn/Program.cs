@@ -30,6 +30,7 @@ builder.Services.AddScoped<IMultimediaService, MultimediaService>();
 builder.Services.AddScoped<IAporteService, AporteService>();
 builder.Services.AddScoped<IAvisoService, AvisoService>();
 builder.Services.AddScoped<IBitacoraService, BitacoraService>();
+builder.Services.AddHttpContextAccessor(); 
 
 // ====================== JWT AUTHENTICATION ======================
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

@@ -11,7 +11,12 @@ using System.Text;
 
 namespace SmartBiodiversityUtn.Services
 {
-    public class AuthServices(SmartBiodiversityUtnContext context, IConfiguration configuration) : IAuthServices
+    public class AuthServices(
+        SmartBiodiversityUtnContext context, 
+        IConfiguration configuration,
+        IHttpContextAccessor httpContextAccessor,
+        IBitacoraService bitacoraService
+        ) : IAuthServices
     {
         public async Task<TokenResponseDto?> LoginAsync(LoginRequest request)
         {
@@ -19,13 +24,32 @@ namespace SmartBiodiversityUtn.Services
                 .Include(u => u.Rol)
                 .FirstOrDefaultAsync(u => u.Correo == request.Email);
 
-            if (user is null) return null;
+            if (user is null) 
+            {
+                await bitacoraService.RegistrarAccionComoAsync(
+                    "SYSTEM",
+                    "LOGIN_FALLIDO_USUARIO_INEXISTENTE",
+                    $"Intento de login con email: {request.Email}");
+                return null;
+            }
+            
 
             if (new PasswordHasher<Usuario>().VerifyHashedPassword(user, user.Password, request.Password)
                 == PasswordVerificationResult.Failed)
             {
+                // LOG: Intento de login fallido - contraseña incorrecta
+                await bitacoraService.RegistrarAccionComoAsync(
+                    user.IdUsuario,
+                    "LOGIN_FALLIDO_CONTRASEÑA",
+                    $"Contraseña incorrecta para: {user.Correo}");
                 return null;
             }
+
+            // LOG: Login exitoso
+            await bitacoraService.RegistrarAccionComoAsync(
+                user.IdUsuario,
+                "LOGIN",
+                $"Inicio de sesión exitoso");
 
             return await CreateTokenResponse(user);
         }
@@ -33,7 +57,13 @@ namespace SmartBiodiversityUtn.Services
         public async Task<Usuario?> RegisterAsync(UserDto request)
         {
             if (await context.Usuarios.AnyAsync(u => u.Correo == request.Correo))
+            {
+                await bitacoraService.RegistrarAccionComoAsync(
+                    "SYSTEM",
+                    "REGISTRO_FALLIDO_EMAIL_EXISTE",
+                    $"Intento de registro con email existente: {request.Correo}");
                 return null;
+            }
 
             var user = new Usuario
             {
@@ -51,13 +81,32 @@ namespace SmartBiodiversityUtn.Services
             context.Usuarios.Add(user);
             await context.SaveChangesAsync();
 
+            // LOG: Usuario registrado
+            await bitacoraService.RegistrarAccionComoAsync(
+                user.IdUsuario,
+                "REGISTRO_USUARIO",
+                $"Nuevo usuario registrado: {user.Correo} (Rol: Visitante)");
+
             return user;
         }
 
         public async Task<TokenResponseDto?> RefreshTokensAsync(RefreshTokenRequestDto requestDto)
         {
             var user = await ValidateTokenRefreshTokenAsync(requestDto.UserId, requestDto.RefreshToken);
-            if (user is null) return null;
+            if (user is null)
+            {
+                await bitacoraService.RegistrarAccionComoAsync(
+                   requestDto.UserId,
+                   "REFRESH_TOKEN_FALLIDO",
+                   "Token de refresco inválido o expirado");
+            }
+
+
+            // LOG: Token refrescado
+            await bitacoraService.RegistrarAccionComoAsync(
+                user.IdUsuario,
+                "REFRESH_TOKEN",
+                "Token de acceso renovado");
 
             return await CreateTokenResponse(user);
         }

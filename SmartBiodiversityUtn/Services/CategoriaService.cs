@@ -2,10 +2,14 @@
 using SmartBiodiversityUtn.Data;
 using SmartBiodiversityUtnModels.DTOs.Categoria;
 using SmartBiodiversityUtnModels.Entities;
+using System.Security.Claims;
 
 namespace SmartBiodiversityUtn.Services
 {
-    public class CategoriaService(SmartBiodiversityUtnContext context) : ICategoriaService
+    public class CategoriaService(
+        SmartBiodiversityUtnContext context,
+        IBitacoraService bitacora,
+        IHttpContextAccessor httpContextAccessor) : ICategoriaService
     {
         public async Task<CategoriaResponse> CreateCategoriaAsync(CreateCategoriaRequest categoria)
         {
@@ -17,6 +21,14 @@ namespace SmartBiodiversityUtn.Services
 
             context.Categorias.Add(newCategoria);
             await context.SaveChangesAsync();
+
+            // LOG: Categoría creada
+            var currentUserId = httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            await bitacora.RegistrarAccionComoAsync(
+                currentUserId ?? "SYSTEM",
+                "CREAR_CATEGORIA",
+                $"Categoría creada: '{newCategoria.NombreCat}' (ID: {newCategoria.IdCategorias})");
+
 
             return new CategoriaResponse
             {
@@ -33,11 +45,23 @@ namespace SmartBiodiversityUtn.Services
             {
                 return false;
             }
+            var nombre = existingCategoria.NombreCat;
 
             context.Categorias.Remove(existingCategoria);
-            await context.SaveChangesAsync();
+            var result = await context.SaveChangesAsync() > 0;
 
-            return true;
+            if (result)
+            {
+                var currentUserId = httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                // LOG: Categoría eliminada
+                await bitacora.RegistrarAccionComoAsync(
+                    currentUserId ?? "SYSTEM",
+                    "ELIMINAR_CATEGORIA",
+                    $"Categoría eliminada: '{nombre}' (ID: {id})");
+            }
+
+            return result;
         }
 
         public async Task<IEnumerable<CategoriaResponse>> GetAllCategoriasAsync()
@@ -71,7 +95,17 @@ namespace SmartBiodiversityUtn.Services
 
             existingCategoria.NombreCat = categoria.Nombre ?? existingCategoria.NombreCat;
 
+            var nombreAnterior = existingCategoria.NombreCat;
+            existingCategoria.NombreCat = categoria.Nombre ?? existingCategoria.NombreCat;
+
             await context.SaveChangesAsync();
+
+            // LOG: Categoría actualizada
+            var currentUserId = httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            await bitacora.RegistrarAccionComoAsync(
+                currentUserId ?? "SYSTEM",
+                "ACTUALIZAR_CATEGORIA",
+                $"Categoría actualizada (ID: {id}): '{nombreAnterior}' → '{existingCategoria.NombreCat}'");
 
             return true;
         }

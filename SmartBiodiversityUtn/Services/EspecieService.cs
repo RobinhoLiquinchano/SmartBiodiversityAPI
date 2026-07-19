@@ -3,10 +3,15 @@ using SmartBiodiversityUtn.Data;
 using SmartBiodiversityUtnModels.DTOs;
 using SmartBiodiversityUtnModels.DTOs.Especie;
 using SmartBiodiversityUtnModels.Entities;
+using System.Security.Claims;
 
 namespace SmartBiodiversityUtn.Services
 {
-    public class EspecieService(SmartBiodiversityUtnContext context) : IEspecieService
+    public class EspecieService(
+        SmartBiodiversityUtnContext context,
+        IBitacoraService bitacora,
+        IHttpContextAccessor httpContextAccessor
+        ) : IEspecieService
     {
         public async Task<EspecieResponse> AddEspecieAsync(CreateEspecieRequest especie)
         {
@@ -26,6 +31,13 @@ namespace SmartBiodiversityUtn.Services
             await context.SaveChangesAsync();
 
             var categoria = await context.Categorias.FindAsync(newEspecie.IdCategoriaEsp);
+
+            // LOG: Especie creada
+            var currentUserId = httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            await bitacora.RegistrarAccionComoAsync(
+                currentUserId ?? "SYSTEM",
+                "CREAR_ESPECIE",
+                $"Especie creada: '{newEspecie.NombreComunEsp}' ({newEspecie.NombreCientificoEsp}) - ID: {newEspecie.IdEspecies} - Categoría: {categoria?.NombreCat}");
 
             return MapToResponse(newEspecie, categoria?.NombreCat ?? "Sin categoría");
         }
@@ -47,16 +59,26 @@ namespace SmartBiodiversityUtn.Services
         public async Task<bool> DeleteEspecieAsync(string id)
         {
             var especieToDelete = await context.Especies.FirstOrDefaultAsync(e => e.IdEspecies == id);
+            if (especieToDelete is null) return false;
 
-            if (especieToDelete is null)
-            {
-                return false;
-            }
+            var nombreComun = especieToDelete.NombreComunEsp;
+            var nombreCientifico = especieToDelete.NombreCientificoEsp;
 
             context.Especies.Remove(especieToDelete);
-            await context.SaveChangesAsync();
+            var result = await context.SaveChangesAsync() > 0;
 
-            return true;
+            if (result)
+            {
+                var currentUserId = httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                // LOG: Especie eliminada
+                await bitacora.RegistrarAccionComoAsync(
+                    currentUserId ?? "SYSTEM",
+                    "ELIMINAR_ESPECIE",
+                    $"Especie eliminada: '{nombreComun}' ({nombreCientifico}) - ID: {id}");
+            }
+
+            return result;
         }
 
         public async Task<IEnumerable<EspecieResponse>> GetAllEspeciesAsync()
@@ -93,11 +115,15 @@ namespace SmartBiodiversityUtn.Services
         public async Task<bool> UpdateEspecieAsync(string id, UpdateEspecieRequest especie)
         {
             var existingEspecie = await context.Especies.FirstOrDefaultAsync(e => e.IdEspecies == id);
+            if (existingEspecie == null) return false;
 
-            if (existingEspecie == null)
-            {
-                return false;
-            }
+            var cambios = new List<string>();
+            if (existingEspecie.NombreComunEsp != especie.NombreComun) cambios.Add($"Nombre común: '{existingEspecie.NombreComunEsp}' → '{especie.NombreComun}'");
+            if (existingEspecie.NombreCientificoEsp != especie.NombreCientifico) cambios.Add($"Nombre científico: '{existingEspecie.NombreCientificoEsp}' → '{especie.NombreCientifico}'");
+            if (existingEspecie.DescripcionEsp != especie.Descripcion) cambios.Add("Descripción modificada");
+            if (existingEspecie.HabitatEsp != especie.Habitat) cambios.Add("Hábitat modificado");
+            if (existingEspecie.EstadoEsp != especie.EstadoEsp) cambios.Add($"Estado: {existingEspecie.EstadoEsp} → {especie.EstadoEsp}");
+            if (existingEspecie.IdCategoriaEsp != especie.IdCategoria) cambios.Add($"Categoría: {existingEspecie.IdCategoriaEsp} → {especie.IdCategoria}");
 
             existingEspecie.NombreComunEsp = especie.NombreComun ?? existingEspecie.NombreComunEsp;
             existingEspecie.NombreCientificoEsp = especie.NombreCientifico ?? existingEspecie.NombreCientificoEsp;
@@ -107,9 +133,20 @@ namespace SmartBiodiversityUtn.Services
             existingEspecie.IdCategoriaEsp = especie.IdCategoria ?? existingEspecie.IdCategoriaEsp;
 
             context.Especies.Update(existingEspecie);
-            await context.SaveChangesAsync();
+            var result = await context.SaveChangesAsync() > 0;
 
-            return true;
+            if (result && cambios.Any())
+            {
+                var currentUserId = httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                // LOG: Especie actualizada
+                await bitacora.RegistrarAccionComoAsync(
+                    currentUserId ?? "SYSTEM",
+                    "ACTUALIZAR_ESPECIE",
+                    $"Especie actualizada (ID: {id}): {string.Join("; ", cambios)}");
+            }
+
+            return result;
         }
     }
 }

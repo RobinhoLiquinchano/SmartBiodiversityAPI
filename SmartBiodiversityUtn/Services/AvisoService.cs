@@ -2,14 +2,17 @@
 using SmartBiodiversityUtn.Data;
 using SmartBiodiversityUtnModels.DTOs.Aviso;
 using SmartBiodiversityUtnModels.Entities;
+using System.Security.Claims;
 
 namespace SmartBiodiversityUtn.Services
 {
-    public class AvisoService(SmartBiodiversityUtnContext context) : IAvisoService
+    public class AvisoService(
+        SmartBiodiversityUtnContext context,
+        IBitacoraService bitacora,
+        IHttpContextAccessor httpContextAccessor) : IAvisoService
     {
         public async Task<AvisoResponse> CreateAvisoAsync(CreateAvisoRequest request)
         {
-            // Buscar el rol de Administrador
             var adminRol = await context.Roles
                 .FirstOrDefaultAsync(r => r.NombreRol == "Administrador");
 
@@ -19,7 +22,7 @@ namespace SmartBiodiversityUtn.Services
             var aviso = new Aviso
             {
                 IdAvisos = "AVI-" + Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper(),
-                IdRolesAvi = adminRol.IdRoles,                    // ← Se asigna automáticamente
+                IdRolesAvi = adminRol.IdRoles,                   
                 TituloAvi = request.TituloAvi,
                 MensajeAvi = request.MensajeAvi,
                 CategoriaAvi = request.CategoriaAvi,
@@ -31,6 +34,13 @@ namespace SmartBiodiversityUtn.Services
             context.Avisos.Add(aviso);
             await context.SaveChangesAsync();
 
+            // LOG: Aviso creado
+            var currentUserId = httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            await bitacora.RegistrarAccionComoAsync(
+                currentUserId ?? "SYSTEM",
+                "CREAR_AVISO",
+                $"Aviso creado: '{aviso.TituloAvi}' (ID: {aviso.IdAvisos}) - Categoría: {aviso.CategoriaAvi} - Activo hasta: {aviso.FechaFinAvi}");
+
             return await MapToResponse(aviso);
         }
 
@@ -39,9 +49,23 @@ namespace SmartBiodiversityUtn.Services
             var aviso = await context.Avisos.FindAsync(id);
             if (aviso is null) return false;
 
+            var titulo = aviso.TituloAvi;
+
             context.Avisos.Remove(aviso);
-            await context.SaveChangesAsync();
-            return true;
+            var result = await context.SaveChangesAsync() > 0;
+
+            if (result)
+            {
+                var currentUserId = httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                // LOG: Aviso eliminado
+                await bitacora.RegistrarAccionComoAsync(
+                    currentUserId ?? "SYSTEM",
+                    "ELIMINAR_AVISO",
+                    $"Aviso eliminado: '{titulo}' (ID: {id})");
+            }
+
+            return result;
         }
 
         public async Task<IEnumerable<AvisoResponse>> GetAllAvisosAsync()
@@ -91,6 +115,13 @@ namespace SmartBiodiversityUtn.Services
             var aviso = await context.Avisos.FindAsync(id);
             if (aviso is null) return false;
 
+            var cambios = new List<string>();
+            if (aviso.TituloAvi != request.TituloAvi) cambios.Add($"Título: '{aviso.TituloAvi}' → '{request.TituloAvi}'");
+            if (aviso.MensajeAvi != request.MensajeAvi) cambios.Add("Mensaje modificado");
+            if (aviso.CategoriaAvi != request.CategoriaAvi) cambios.Add($"Categoría: '{aviso.CategoriaAvi}' → '{request.CategoriaAvi}'");
+            if (aviso.ActivoAvi != request.ActivoAvi) cambios.Add($"Activo: {aviso.ActivoAvi} → {request.ActivoAvi}");
+            if (aviso.FechaFinAvi != request.FechaFinAvi) cambios.Add($"Fecha fin: {aviso.FechaFinAvi} → {request.FechaFinAvi}");
+
             if (request.TituloAvi != null) aviso.TituloAvi = request.TituloAvi;
             if (request.MensajeAvi != null) aviso.MensajeAvi = request.MensajeAvi;
             if (request.CategoriaAvi != null) aviso.CategoriaAvi = request.CategoriaAvi;
@@ -99,8 +130,21 @@ namespace SmartBiodiversityUtn.Services
             if (request.FechaFinAvi.HasValue) aviso.FechaFinAvi = request.FechaFinAvi;
 
             await context.SaveChangesAsync();
+
+            if (cambios.Any())
+            {
+                var currentUserId = httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                // LOG: Aviso actualizado
+                await bitacora.RegistrarAccionComoAsync(
+                    currentUserId ?? "SYSTEM",
+                    "ACTUALIZAR_AVISO",
+                    $"Aviso actualizado (ID: {id}): {string.Join("; ", cambios)}");
+            }
+
             return true;
         }
+
 
         private async Task<AvisoResponse> MapToResponse(Aviso aviso)
         {
