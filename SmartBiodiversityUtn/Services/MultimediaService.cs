@@ -14,9 +14,12 @@ namespace SmartBiodiversityUtn.Services
 
         public async Task<MultimediaResponse> AddMultimediaAsync(CreateMultimediaRequest request)
         {
-            // Validar que la especie exista
-            var especieExiste = await _context.Especies.AnyAsync(e => e.IdEspecies == request.EspecieId);
-            if (!especieExiste)
+            // Validar que la especie exista y traer su categoría
+            var especie = await _context.Especies
+                .Include(e => e.Categoria)
+                .FirstOrDefaultAsync(e => e.IdEspecies == request.EspecieId);
+
+            if (especie is null)
                 throw new Exception($"La especie con ID {request.EspecieId} no existe.");
 
             // === CONFIGURACIÓN DE SUPABASE ===
@@ -27,9 +30,12 @@ namespace SmartBiodiversityUtn.Services
             if (string.IsNullOrEmpty(supabaseUrl) || string.IsNullOrEmpty(supabaseKey))
                 throw new Exception("Configuración de Supabase incompleta (Url o ServiceRoleKey).");
 
+            // === CARPETA SEGÚN CATEGORÍA (Fauna, Flora, etc.) ===
+            var carpetaCategoria = ObtenerCarpetaPorCategoria(especie.Categoria?.NombreCat);
+
             // === SUBIR ARCHIVO A SUPABASE ===
             var fileName = $"{Guid.NewGuid()}_{request.Archivo.FileName}";
-            var storagePath = $"{bucketName}/{fileName}";
+            var storagePath = $"{bucketName}/{carpetaCategoria}/{fileName}";
 
             var uploadUrl = $"{supabaseUrl}/storage/v1/object/{storagePath}";
 
@@ -71,6 +77,22 @@ namespace SmartBiodiversityUtn.Services
                 TipoArchivo = multimedia.TipoArchivoMul,
                 RutaArchivo = multimedia.RutaArchivoMul,
                 Fecha = multimedia.FechaMul
+            };
+        }
+
+        // Determina la subcarpeta del bucket según el nombre de la categoría de la especie
+        private static string ObtenerCarpetaPorCategoria(string? nombreCategoria)
+        {
+            if (string.IsNullOrWhiteSpace(nombreCategoria))
+                return "Otros";
+
+            var nombre = nombreCategoria.Trim().ToLowerInvariant();
+
+            return nombre switch
+            {
+                "fauna" => "Fauna",
+                "flora" => "Flora",
+                _ => nombreCategoria.Trim() // usa el nombre tal cual si es otra categoría
             };
         }
 

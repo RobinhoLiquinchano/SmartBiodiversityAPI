@@ -30,6 +30,7 @@ namespace SmartBiodiversityUtn.Controllers
         }
 
         [HttpPost]
+        [Consumes("multipart/form-data")]
         public async Task<ActionResult<MultimediaResponse>> Upload([FromForm] CreateMultimediaRequest request)
         {
             try
