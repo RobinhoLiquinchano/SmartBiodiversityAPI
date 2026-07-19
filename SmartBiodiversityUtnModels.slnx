@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="SmartBiodiversityUtn/SmartBiodiversityUtn.csproj" />
+  <Project Path="SmartBiodiversityUtnModels/SmartBiodiversityUtnModels.csproj" />
+</Solution>
