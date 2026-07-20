@@ -13,13 +13,24 @@ namespace SmartBiodiversityUtn.Controllers
     public class AuthController(IAuthServices authServices) : ControllerBase
     {
         [HttpPost("register")]
+        [AllowAnonymous]
         public async Task<ActionResult<Usuario>> Register(UserDto request)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             var user = await authServices.RegisterAsync(request);
+
             if (user is null)
             {
-                return BadRequest("User already exists.");
+                return BadRequest(new
+                {
+                    message = "No fue posible registrar el usuario. " +
+                              "El correo puede estar registrado, el código puede ser " +
+                              "incorrecto, ya fue usado o expiró."
+                });
             }
+
             return Ok(new
             {
                 idUsuario = user.IdUsuario,
@@ -88,6 +99,61 @@ namespace SmartBiodiversityUtn.Controllers
             return success
                 ? Ok("Contraseña cambiada exitosamente.")
                 : BadRequest("Contraseña actual incorrecta o ya utilizada anteriormente.");
+        }
+
+        [HttpPost("send-verification-code")]
+        [AllowAnonymous]
+        public async Task<IActionResult> SendVerificationCode(
+    SendVerificationCodeRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var enviado = await authServices.SendVerificationCodeAsync(
+                request.Email
+            );
+
+            if (!enviado)
+            {
+                return BadRequest(new
+                {
+                    message = "No fue posible enviar el código. " +
+                              "El correo podría estar registrado."
+                });
+            }
+
+            return Ok(new
+            {
+                message = "Código de verificación enviado correctamente al correo."
+            });
+        }
+
+        [HttpPost("verify-code")]
+        [AllowAnonymous]
+        public async Task<IActionResult> VerifyCode(
+            VerifyCodeRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var valido = await authServices.VerifyRegistrationCodeAsync(
+                request.Email,
+                request.Codigo
+            );
+
+            if (!valido)
+            {
+                return BadRequest(new
+                {
+                    message = "El código es inválido, ya fue utilizado o expiró."
+                });
+            }
+
+            return Ok(new
+            {
+                message = "Código verificado correctamente.",
+                verified = true
+            });
         }
     }
 }

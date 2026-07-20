@@ -1,27 +1,33 @@
 ﻿using SmartBiodiversityUtnModels.DTOs.Account;
 using SmartBiodiversityUtnModels.Entities;
 
-public interface IAuthServices
+namespace SmartBiodiversityUtn.Services
 {
-    Task<Usuario?> RegisterAsync(UserDto request);
+    public interface IAuthServices
+    {
+        Task<Usuario?> RegisterAsync(UserDto request);
 
-    Task<TokenResponseDto?> LoginAsync(LoginRequest request);
+        Task<TokenResponseDto?> LoginAsync(LoginRequest request);
 
-    Task<TokenResponseDto?> RefreshTokensAsync(
-        RefreshTokenRequestDto requestDto
-    );
+        Task<TokenResponseDto?> RefreshTokensAsync(
+            RefreshTokenRequestDto requestDto
+        );
 
-    Task<string> GeneratePasswordResetTokenAsync(string email);
+        Task<string?> GeneratePasswordResetTokenAsync(string email);
 
-    Task<bool> ResetPasswordAsync(string token, string newPassword);
+        Task<bool> ResetPasswordAsync(string token, string newPassword);
 
-    Task<bool> ChangePasswordAsync(
-        string userId,
-        string currentPassword,
-        string newPassword
-    );
+        Task<bool> ChangePasswordAsync(
+            string userId,
+            string currentPassword,
+            string newPassword
+        );
 
-    Task<bool> SendVerificationCodeAsync(string email);
+        Task<bool> SendVerificationCodeAsync(string email);
 
-    Task<bool> VerifyRegistrationCodeAsync(string email, string codigo);
+        Task<bool> VerifyRegistrationCodeAsync(
+            string email,
+            string codigo
+        );
+    }
 }

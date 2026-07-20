@@ -8,7 +8,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using System.Security.Cryptography;
 
 
 namespace SmartBiodiversityUtn.Services
@@ -51,18 +50,56 @@ namespace SmartBiodiversityUtn.Services
             return await CreateTokenResponse(user);
         }
 
+
         public async Task<Usuario?> RegisterAsync(UserDto request)
         {
-            if (await _context.Usuarios.AnyAsync(u => u.Correo == request.Correo))
+            var correo = request.Correo.Trim().ToLowerInvariant();
+            var codigo = request.CodigoVerificacion.Trim();
+
+            var usuarioExiste = await _context.Usuarios
+                .AnyAsync(u => u.Correo.ToLower() == correo);
+
+            if (usuarioExiste)
+                return null;
+
+            var codigoHash = GenerarHash(codigo);
+
+            /*
+             * Busca un token que:
+             * - pertenezca al correo
+             * - tenga el código correcto
+             * - sea tipo Registro
+             * - no esté usado
+             * - no esté expirado
+             */
+            var tokenRegistro = await _context.Tokens
+                .Where(t =>
+                    t.CorreoTok == correo &&
+                    t.CodigoTok == codigoHash &&
+                    t.TipoTok == "Registro" &&
+                    t.Usado != "1" &&
+                    t.FechaExpiracionTok >= DateTime.UtcNow)
+                .OrderByDescending(t => t.FechaCreacionTok)
+                .FirstOrDefaultAsync();
+
+            // No permite crear una cuenta sin token válido.
+            if (tokenRegistro == null)
                 return null;
 
             var user = new Usuario
             {
-                IdUsuario = "USR-" + Guid.NewGuid().ToString("N").Substring(0, 6).ToUpper(),
-                Apellidos = request.Apellidos,
-                Nombres = request.Nombres,
-                Correo = request.Correo,
-                Password = new PasswordHasher<Usuario>().HashPassword(null!, request.Password),
+                IdUsuario = "USR-" + Guid.NewGuid()
+                    .ToString("N")
+                    .Substring(0, 6)
+                    .ToUpper(),
+
+                Apellidos = request.Apellidos.Trim(),
+                Nombres = request.Nombres.Trim(),
+                Correo = correo,
+
+                Password = new PasswordHasher<Usuario>()
+                    .HashPassword(null!, request.Password),
+
                 Estado = "Activo",
                 FechaRegistro = DateTime.UtcNow,
                 IntentosFallidos = 0,
@@ -70,12 +107,25 @@ namespace SmartBiodiversityUtn.Services
             };
 
             _context.Usuarios.Add(user);
+
+            /*
+             * El token ahora queda asociado al usuario creado y no puede
+             * volver a utilizarse.
+             */
+            tokenRegistro.IdUsuarioTok = user.IdUsuario;
+            tokenRegistro.Usado = "1";
+
             await _context.SaveChangesAsync();
 
-            await BitacoraHelper.RegistrarAccionAsync(_bitacoraService, user.IdUsuario, "REGISTRO", $"Usuario registrado: {user.Correo}");
+            await BitacoraHelper.RegistrarAccionAsync(
+                _bitacoraService,
+                user.IdUsuario,
+                "REGISTRO",
+                $"Usuario registrado con correo verificado: {user.Correo}"
+            );
+
             return user;
         }
-
         // ==================== PASSWORD RESET (usando Token) ====================
         public async Task<string?> GeneratePasswordResetTokenAsync(string email)
         {
