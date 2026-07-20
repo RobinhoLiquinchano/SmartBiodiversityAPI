@@ -1,0 +1,45 @@
+﻿@{
+    ViewData["Title"] = "Panel administrativo";
+}
+
+<div class="container">
+    <h1>Panel administrativo</h1>
+
+    <p>
+        Bienvenido al panel de administración de Smart Biodiversity.
+    </p>
+
+    <div class="row">
+        <div class="col-md-3 mb-3">
+            <a asp-controller="Especies"
+               asp-action="Index"
+               class="btn btn-primary w-100">
+                Gestionar especies
+            </a>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <a asp-controller="Categorias"
+               asp-action="Index"
+               class="btn btn-primary w-100">
+                Gestionar categorías
+            </a>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <a asp-controller="Aportes"
+               asp-action="Index"
+               class="btn btn-primary w-100">
+                Revisar aportes
+            </a>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <a asp-controller="Avisos"
+               asp-action="Index"
+               class="btn btn-primary w-100">
+                Gestionar avisos
+            </a>
+        </div>
+    </div>
+</div>

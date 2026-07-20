@@ -1,0 +1,46 @@
+﻿@model IEnumerable<SmartBiodiversityUtnModels.DTOs.Especie.EspecieResponse>
+
+@{
+    ViewData["Title"] = "Especies";
+}
+
+<h1>Especies</h1>
+
+<div class="row">
+    @foreach (var especie in Model)
+    {
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        @especie.NombreComun
+                    </h5>
+
+                    <h6 class="card-subtitle mb-2 text-muted">
+                        @especie.NombreCientifico
+                    </h6>
+
+                    <p class="card-text">
+                        @especie.Descripcion
+                    </p>
+
+                    <p>
+                        <strong>Hábitat:</strong>
+                        @especie.Habitat
+                    </p>
+
+                    <p>
+                        <strong>Categoría:</strong>
+                        @especie.NombreCategoria
+                    </p>
+
+                    <a asp-action="Details"
+                       asp-route-id="@especie.IdEspecie"
+                       class="btn btn-outline-primary">
+                        Ver detalle
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+</div>
