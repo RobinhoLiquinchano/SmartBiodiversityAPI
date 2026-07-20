@@ -1,0 +1,415 @@
+﻿@{
+    Layout = null;
+    ViewData["Title"] = "Inventario de Especies";
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inventario de Especies - Smart Biodiversity</title>
+
+    <style>
+            :root {
+                --bg: #f4f6fa;
+                --sidebar: #162232;
+                --sidebar-light: #223044;
+                --primary: #22c55e;
+                --primary-dark: #16a34a;
+                --text: #111827;
+                --muted: #6b7280;
+                --card: #ffffff;
+                --border: #e5e7eb;
+                --radius: 16px;
+                --shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            body {
+                margin: 0;
+                font-family: Arial, Helvetica, sans-serif;
+                background: var(--bg);
+                color: var(--text);
+            }
+
+            .dashboard {
+                display: grid;
+                grid-template-columns: 260px 1fr;
+                min-height: 100vh;
+            }
+
+            /* SIDEBAR */
+            .sidebar {
+                background: var(--sidebar);
+                color: white;
+                padding: 24px 16px;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .logo {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 40px;
+            }
+
+            .logo-icon {
+                width: 42px;
+                height: 42px;
+                border-radius: 10px;
+                background: var(--primary);
+                display: grid;
+                place-items: center;
+                font-size: 22px;
+            }
+
+            .logo-text {
+                font-weight: bold;
+                line-height: 1.1;
+            }
+
+                .logo-text span {
+                    color: var(--primary);
+                    display: block;
+                }
+
+            .menu-title {
+                font-size: 12px;
+                color: #94a3b8;
+                margin: 0 0 12px 8px;
+                letter-spacing: 1px;
+            }
+
+            .menu {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .menu-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 14px 16px;
+                border-radius: 10px;
+                color: #cbd5e1;
+                text-decoration: none;
+                font-size: 15px;
+                transition: 0.2s ease;
+            }
+
+                .menu-item:hover {
+                    background: var(--sidebar-light);
+                }
+
+                .menu-item.active {
+                    background: rgba(34, 197, 94, 0.15);
+                    color: var(--primary);
+                    font-weight: bold;
+                    border-right: 4px solid var(--primary);
+                }
+
+            .profile {
+                margin-top: auto;
+                background: var(--sidebar-light);
+                border-radius: 14px;
+                padding: 16px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+
+            .avatar {
+                width: 42px;
+                height: 42px;
+                border-radius: 50%;
+                background: #6366f1;
+                display: grid;
+                place-items: center;
+                font-weight: bold;
+            }
+
+            .profile-info strong {
+                display: block;
+                font-size: 15px;
+            }
+
+            .profile-info span {
+                color: #94a3b8;
+                font-size: 13px;
+            }
+
+            /* CONTENIDO PRINCIPAL */
+            .main {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .topbar {
+                height: 72px;
+                background: white;
+                border-bottom: 1px solid var(--border);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 28px;
+            }
+
+            .topbar-brand {
+                font-weight: bold;
+                font-size: 20px;
+            }
+
+            .campus-select {
+                background: white;
+                border: 1px solid var(--border);
+                padding: 10px 18px;
+                border-radius: 10px;
+                font-weight: bold;
+            }
+
+            .topbar-actions {
+                display: flex;
+                gap: 12px;
+            }
+
+            .icon-btn {
+                width: 42px;
+                height: 42px;
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                background: white;
+                cursor: pointer;
+            }
+
+            .content {
+                padding: 32px;
+            }
+
+            .page-title h1 {
+                margin: 0;
+                font-size: 30px;
+            }
+
+            .page-title p {
+                color: var(--muted);
+                margin: 8px 0 32px;
+            }
+
+            /* PANELES FLORA Y FAUNA */
+            .inventory-grid {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(260px, 420px));
+                gap: 28px;
+                justify-content: start;
+            }
+
+            .inventory-card {
+                min-height: 300px;
+                padding: 32px;
+                border-radius: var(--radius);
+                background: var(--card);
+                box-shadow: var(--shadow);
+                text-decoration: none;
+                color: var(--text);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                text-align: center;
+                border: 2px solid transparent;
+                transition: all 0.25s ease;
+            }
+
+                .inventory-card:hover {
+                    transform: translateY(-8px);
+                }
+
+            .flora-card:hover {
+                border-color: #22c55e;
+                box-shadow: 0 18px 30px rgba(34, 197, 94, 0.20);
+            }
+
+            .fauna-card:hover {
+                border-color: #3b82f6;
+                box-shadow: 0 18px 30px rgba(59, 130, 246, 0.20);
+            }
+
+            .inventory-icon {
+                width: 95px;
+                height: 95px;
+                border-radius: 50%;
+                display: grid;
+                place-items: center;
+                font-size: 46px;
+                margin-bottom: 22px;
+            }
+
+            .flora-card .inventory-icon {
+                background: #dcfce7;
+            }
+
+            .fauna-card .inventory-icon {
+                background: #dbeafe;
+            }
+
+            .inventory-card h2 {
+                margin: 0 0 12px;
+                font-size: 28px;
+            }
+
+            .inventory-card p {
+                margin: 0;
+                color: var(--muted);
+                line-height: 1.6;
+                max-width: 270px;
+            }
+
+            .card-button {
+                margin-top: 24px;
+                padding: 10px 18px;
+                border-radius: 10px;
+                font-weight: bold;
+            }
+
+            .flora-card .card-button {
+                color: #15803d;
+                background: #dcfce7;
+            }
+
+            .fauna-card .card-button {
+                color: #1d4ed8;
+                background: #dbeafe;
+            }
+
+            @@media (max-width: 900px) {
+                .dashboard {
+                    grid-template-columns: 1fr;
+                }
+
+                .sidebar {
+                    display: none;
+                }
+
+                .inventory-grid {
+                    grid-template-columns: 1fr;
+                }
+
+                .topbar {
+                    padding: 0 16px;
+                }
+
+                .campus-select {
+                    display: none;
+                }
+
+                .content {
+                    padding: 24px 16px;
+                }
+            }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard">
+
+        <aside class="sidebar">
+            <div class="logo">
+                <div class="logo-icon">🌱</div>
+                <div class="logo-text">
+                    Smart
+                    <span>Biodiversity</span>
+                </div>
+            </div>
+
+            <p class="menu-title">MENÚ</p>
+
+            <nav class="menu">
+                <a asp-controller="Administracion"
+                   asp-action="Index"
+                   class="menu-item">
+                    ▦ Dashboard
+                </a>
+
+                <a asp-controller="Administracion"
+                   asp-action="InventarioEspecies"
+                   class="menu-item active">
+                    🌿 Inventario Especies
+                </a>
+
+                <a href="#" class="menu-item">🔬 Taxonomía</a>
+                <a href="#" class="menu-item">🗺️ Mapa Campus</a>
+                <a href="#" class="menu-item">✅ Validaciones</a>
+                <a href="#" class="menu-item">📊 Reportes</a>
+                <a href="#" class="menu-item">👥 Usuarios</a>
+                <a href="#" class="menu-item">⚙️ Configuración</a>
+            </nav>
+
+            <div class="profile">
+                <div class="avatar">A</div>
+                <div class="profile-info">
+                    <strong>Perfil</strong>
+                    <span>Administrador Principal</span>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main">
+
+            <header class="topbar">
+                <div class="topbar-brand">🌱 Smart Biodiversity</div>
+
+                <div class="campus-select">
+                    Campus: El Olivo
+                </div>
+
+                <div class="topbar-actions">
+                    <button class="icon-btn">🔔</button>
+                    <button class="icon-btn">A</button>
+                </div>
+            </header>
+
+            <section class="content">
+                <div class="page-title">
+                    <h1>Inventario de Especies</h1>
+                    <p>Seleccione el grupo de especies que desea consultar o administrar.</p>
+                </div>
+
+                <section class="inventory-grid">
+
+                    <a asp-controller="Administracion"
+                       asp-action="Flora"
+                       class="inventory-card flora-card">
+                        <div class="inventory-icon">🌿</div>
+                        <h2>Flora</h2>
+                        <p>
+                            Consulta y administra las especies vegetales
+                            registradas en el campus.
+                        </p>
+                        <span class="card-button">Ver inventario de flora →</span>
+                    </a>
+
+                    <a asp-controller="Administracion"
+                       asp-action="Fauna"
+                       class="inventory-card fauna-card">
+                        <div class="inventory-icon">🦋</div>
+                        <h2>Fauna</h2>
+                        <p>
+                            Consulta y administra las especies animales
+                            registradas en el campus.
+                        </p>
+                        <span class="card-button">Ver inventario de fauna →</span>
+                    </a>
+
+                </section>
+            </section>
+
+        </main>
+    </div>
+</body>
+</html>

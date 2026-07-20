@@ -94,11 +94,22 @@ namespace SmartBiodiversityUtn.Data
             // ---------- TOKENS (FK: string) ----------
             modelBuilder.Entity<Token>(entity =>
             {
-                entity.HasIndex(t => t.CodigoTok).IsUnique();
+                entity.HasIndex(t => t.CodigoTok);
+
+                entity.HasIndex(t => t.CorreoTok);
+
+                entity.Property(t => t.CodigoTok)
+                      .HasMaxLength(100)
+                      .IsRequired();
+
+                entity.Property(t => t.CorreoTok)
+                      .HasMaxLength(100);
+
                 entity.HasOne(t => t.Usuario)
                       .WithMany(u => u.Tokens)
-                      .HasForeignKey(t => t.IdUsuarioTok) // string
-                      .OnDelete(DeleteBehavior.Cascade);
+                      .HasForeignKey(t => t.IdUsuarioTok)
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired(false);
             });
 
             // ---------- CATEGORIAS (IdCategorias es string) ----------

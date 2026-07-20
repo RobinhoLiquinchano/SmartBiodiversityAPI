@@ -8,6 +8,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Security.Cryptography;
+
 
 namespace SmartBiodiversityUtn.Services
 {
@@ -264,6 +266,95 @@ namespace SmartBiodiversityUtn.Services
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+        public async Task<bool> SendVerificationCodeAsync(string email)
+        {
+            email = email.Trim().ToLowerInvariant();
+
+            var usuarioExiste = await _context.Usuarios
+                .AnyAsync(u => u.Correo.ToLower() == email);
+
+            if (usuarioExiste)
+                return false;
+
+            // Invalida anteriores códigos de registro del mismo correo.
+            var tokensAnteriores = await _context.Tokens
+                .Where(t =>
+                    t.CorreoTok == email &&
+                    t.TipoTok == "Registro" &&
+                    t.Usado != "1")
+                .ToListAsync();
+
+            foreach (var tokenAnterior in tokensAnteriores)
+            {
+                tokenAnterior.Usado = "1";
+            }
+
+            // Código seguro aleatorio entre 100000 y 999999.
+            var codigo = RandomNumberGenerator
+                .GetInt32(100000, 1000000)
+                .ToString();
+
+            var token = new Token
+            {
+                IdTokens = "REG-" + Guid.NewGuid().ToString("N")
+                    .Substring(0, 10).ToUpper(),
+
+                // Aún no hay usuario creado.
+                IdUsuarioTok = null,
+
+                CorreoTok = email,
+
+                // Se guarda hash, no el código visible.
+                CodigoTok = GenerarHash(codigo),
+
+                TipoTok = "Registro",
+                FechaCreacionTok = DateTime.UtcNow,
+                FechaExpiracionTok = DateTime.UtcNow.AddMinutes(10),
+                Usado = "0"
+            };
+
+            _context.Tokens.Add(token);
+            await _context.SaveChangesAsync();
+
+            await _emailService.SendVerificationCodeEmailAsync(
+                email,
+                codigo
+            );
+
+            return true;
+        }
+
+        public async Task<bool> VerifyRegistrationCodeAsync(
+            string email,
+            string codigo)
+        {
+            email = email.Trim().ToLowerInvariant();
+
+            var codigoHash = GenerarHash(codigo.Trim());
+
+            var token = await _context.Tokens
+                .Where(t =>
+                    t.CorreoTok == email &&
+                    t.CodigoTok == codigoHash &&
+                    t.TipoTok == "Registro" &&
+                    t.Usado != "1" &&
+                    t.FechaExpiracionTok >= DateTime.UtcNow)
+                .OrderByDescending(t => t.FechaCreacionTok)
+                .FirstOrDefaultAsync();
+
+            return token != null;
+        }
+
+        private static string GenerarHash(string texto)
+        {
+            using var sha256 = SHA256.Create();
+
+            var bytes = sha256.ComputeHash(
+                Encoding.UTF8.GetBytes(texto)
+            );
+
+            return Convert.ToHexString(bytes);
         }
     }
 }

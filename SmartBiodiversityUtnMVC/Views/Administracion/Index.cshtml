@@ -405,7 +405,11 @@
             <p class="menu-title">MENÚ</p>
             <nav class="menu">
                 <a href="#" class="menu-item active">▦ Dashboard</a>
-                <a href="/Admin/InventarioEspecies" class="menu-item">🌿 Inventario Especies</a>
+                <a asp-controller="Administracion"
+                   asp-action="InventarioEspecies"
+                   class="menu-item">
+                    🌿 Inventario Especies
+                </a>
                 <a href="#" class="menu-item">🔬 Taxonomía</a>
                 <a href="#" class="menu-item">🗺️ Mapa Campus</a>
                 <a href="#" class="menu-item">✅ Validaciones</a>
