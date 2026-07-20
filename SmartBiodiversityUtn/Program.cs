@@ -108,6 +108,10 @@ using (var scope = app.Services.CreateScope())
         var context = services.GetRequiredService<SmartBiodiversityUtnContext>();
         var passwordHasher = new PasswordHasher<Usuario>();
 
+
+        // 👇 AÑADE ESTA LÍNEA PARA CREAR LAS TABLAS EN RENDER 👇
+        context.Database.Migrate();
+
         // === SEED ROLES ===
         var rolesPorDefecto = new List<Rol>
         {
