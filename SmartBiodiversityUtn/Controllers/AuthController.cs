@@ -1,9 +1,5 @@
-﻿using MailKit.Net.Smtp;
-using MailKit.Security;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MimeKit;
-using MimeKit.Text;
 using SmartBiodiversityUtn.Services;
 using SmartBiodiversityUtnModels.DTOs.Account;
 using SmartBiodiversityUtnModels.Entities;
@@ -15,6 +11,67 @@ namespace SmartBiodiversityUtn.Controllers
     [ApiController]
     public class AuthController(IAuthServices authServices) : ControllerBase
     {
+        // ============================================================
+        // 1) SOLICITUD DE REGISTRO: genera código, lo guarda y envía email.
+        // ============================================================
+        [HttpPost("send-verification-code")]
+        [AllowAnonymous]
+        public async Task<IActionResult> SendVerificationCode(SendVerificationCodeRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var enviado = await authServices.SendVerificationCodeAsync(request.Email);
+
+            if (!enviado)
+            {
+                return BadRequest(new
+                {
+                    message = "No fue posible enviar el código. " +
+                              "El correo podría estar registrado o hubo un error al enviar el correo."
+                });
+            }
+
+            return Ok(new
+            {
+                message = "Código de verificación enviado correctamente al correo.",
+                expiracionMinutos = 15
+            });
+        }
+
+        // ============================================================
+        // 2) VERIFICACIÓN DEL CÓDIGO (opcional, útil para UIs de doble paso).
+        //    NO crea el usuario todavía.
+        // ============================================================
+        [HttpPost("verify-code")]
+        [AllowAnonymous]
+        public async Task<IActionResult> VerifyCode(VerifyCodeRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var valido = await authServices.VerifyRegistrationCodeAsync(
+                request.Email, request.Codigo);
+
+            if (!valido)
+            {
+                return BadRequest(new
+                {
+                    message = "El código es inválido, ya fue utilizado, fue invalidado o expiró."
+                });
+            }
+
+            return Ok(new
+            {
+                message = "Código verificado correctamente. Procede a completar tu registro.",
+                verified = true
+            });
+        }
+
+        // ============================================================
+        // 3) REGISTRO DEFINITIVO: valida el código y, si es correcto,
+        //    crea el Usuario en la BD.
+        // ============================================================
         [HttpPost("register")]
         [AllowAnonymous]
         public async Task<ActionResult<Usuario>> Register(UserDto request)
@@ -53,12 +110,9 @@ namespace SmartBiodiversityUtn.Controllers
             {
                 return BadRequest("Invalid username or password");
             }
-
             return Ok(result);
         }
 
-
-        //[Authorize]      
         [HttpPost("refresh-token")]
         public async Task<ActionResult<TokenResponseDto>> RefreshToken(RefreshTokenRequestDto request)
         {
@@ -71,6 +125,7 @@ namespace SmartBiodiversityUtn.Controllers
             }
             return Ok(result);
         }
+
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword(PasswordResetRequest request)
         {
@@ -78,7 +133,6 @@ namespace SmartBiodiversityUtn.Controllers
             if (token == null)
                 return BadRequest("Usuario no encontrado.");
 
-            // Aquí puedes enviar el token por correo (por ahora lo devolvemos)
             return Ok(new { message = "Token de restablecimiento generado", token });
         }
 
@@ -98,65 +152,12 @@ namespace SmartBiodiversityUtn.Controllers
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userId == null) return Unauthorized();
 
-            var success = await authServices.ChangePasswordAsync(userId, request.CurrentPassword, request.NewPassword);
+            var success = await authServices.ChangePasswordAsync(
+                userId, request.CurrentPassword, request.NewPassword);
+
             return success
                 ? Ok("Contraseña cambiada exitosamente.")
                 : BadRequest("Contraseña actual incorrecta o ya utilizada anteriormente.");
         }
-
-        [HttpPost("send-verification-code")]
-        [AllowAnonymous]
-        public async Task<IActionResult> SendVerificationCode(SendVerificationCodeRequest request)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var enviado = await authServices.SendVerificationCodeAsync(
-                request.Email
-            );
-
-            if (!enviado)
-            {
-                return BadRequest(new
-                {
-                    message = "No fue posible enviar el código. " +
-                              "El correo podría estar registrado."
-                });
-            }
-
-            return Ok(new
-            {
-                message = "Código de verificación enviado correctamente al correo."
-            });
-        }
-
-        [HttpPost("verify-code")]
-        [AllowAnonymous]
-        public async Task<IActionResult> VerifyCode(
-            VerifyCodeRequest request)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var valido = await authServices.VerifyRegistrationCodeAsync(
-                request.Email,
-                request.Codigo
-            );
-
-            if (!valido)
-            {
-                return BadRequest(new
-                {
-                    message = "El código es inválido, ya fue utilizado o expiró."
-                });
-            }
-
-            return Ok(new
-            {
-                message = "Código verificado correctamente.",
-                verified = true
-            });
-        }
-        
     }
 }

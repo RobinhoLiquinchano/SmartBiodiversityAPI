@@ -44,6 +44,11 @@ builder.Services.AddDbContext<SmartBiodiversityUtnContext>(options =>
     }
 });
 
+builder.Configuration
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
+    .AddEnvironmentVariables();
+
 // SERVICIOS 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -124,7 +129,7 @@ using (var scope = app.Services.CreateScope())
         {
             new Rol { IdRoles = "1", NombreRol = "Administrador" },
             new Rol { IdRoles = "2", NombreRol = "Visitante" },
-            new Rol { IdRoles = "3", NombreRol = "Usuario Registrado" }
+
         };
 
         foreach (var nuevoRol in rolesPorDefecto)

@@ -3,12 +3,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SmartBiodiversityUtn.Data;
 using SmartBiodiversityUtnModels.DTOs.Account;
+using SmartBiodiversityUtnModels.DTOs.Email;
 using SmartBiodiversityUtnModels.Entities;
+using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-
 
 namespace SmartBiodiversityUtn.Services
 {
@@ -18,6 +19,9 @@ namespace SmartBiodiversityUtn.Services
         private readonly IConfiguration _configuration;
         private readonly IBitacoraService _bitacoraService;
         private readonly IEmailService _emailService;
+
+        // Tiempo de vida del código de verificación (15 minutos).
+        private const int CodigoExpiracionMinutos = 15;
 
         public AuthServices(
             SmartBiodiversityUtnContext context,
@@ -46,365 +50,439 @@ namespace SmartBiodiversityUtn.Services
                 return null;
             }
 
-            await BitacoraHelper.RegistrarAccionAsync(_bitacoraService, user.IdUsuario, "LOGIN", "Inicio de sesión exitoso");
-            return await CreateTokenResponse(user);
+            return await GenerateTokenAsync(user);
         }
 
-
+        // ==================== REGISTRO (con verificación de código) ====================
         public async Task<Usuario?> RegisterAsync(UserDto request)
         {
-            var correo = request.Correo.Trim().ToLowerInvariant();
-            var codigo = request.CodigoVerificacion.Trim();
+            // 1. No permitir registrar un correo que ya exista.
+            var existingUser = await _context.Usuarios
+                .FirstOrDefaultAsync(u => u.Correo == request.Correo);
 
-            var usuarioExiste = await _context.Usuarios
-                .AnyAsync(u => u.Correo.ToLower() == correo);
+            if (existingUser != null) return null;
 
-            if (usuarioExiste)
-                return null;
+            // 2. Validar el código de verificación contra la tabla Tokens.
+            var tokenValido = await ObtenerTokenValidoAsync(
+                request.Correo,
+                request.CodigoVerificacion,
+                "Registro");
 
-            var codigoHash = GenerarHash(codigo);
+            if (tokenValido == null) return null;
 
-            /*
-             * Busca un token que:
-             * - pertenezca al correo
-             * - tenga el código correcto
-             * - sea tipo Registro
-             * - no esté usado
-             * - no esté expirado
-             */
-            var tokenRegistro = await _context.Tokens
-                .Where(t =>
-                    t.CorreoTok == correo &&
-                    t.CodigoTok == codigoHash &&
-                    t.TipoTok == "Registro" &&
-                    t.Usado != "1" &&
-                    t.FechaExpiracionTok >= DateTime.UtcNow)
-                .OrderByDescending(t => t.FechaCreacionTok)
-                .FirstOrDefaultAsync();
+            // 3. Crear el usuario con el rol por defecto "Usuario Registrado".
+            var rolRegistrado = await _context.Roles
+                .FirstOrDefaultAsync(r => r.NombreRol == "Usuario Registrado");
 
-            // No permite crear una cuenta sin token válido.
-            if (tokenRegistro == null)
-                return null;
+            if (rolRegistrado is null) return null;
 
-            var user = new Usuario
+            var passwordHasher = new PasswordHasher<Usuario>();
+            var hashedPassword = passwordHasher.HashPassword(null!, request.Password);
+
+            var usuario = new Usuario
             {
-                IdUsuario = "USR-" + Guid.NewGuid()
-                    .ToString("N")
-                    .Substring(0, 6)
-                    .ToUpper(),
-
-                Apellidos = request.Apellidos.Trim(),
-                Nombres = request.Nombres.Trim(),
-                Correo = correo,
-
-                Password = new PasswordHasher<Usuario>()
-                    .HashPassword(null!, request.Password),
-
+                IdUsuario = "USR-" + Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper(),
+                Nombres = request.Nombres,
+                Apellidos = request.Apellidos,
+                Correo = request.Correo,
+                Password = hashedPassword,
                 Estado = "Activo",
                 FechaRegistro = DateTime.UtcNow,
                 IntentosFallidos = 0,
-                IdRolesU = "2"
+                IdRolesU = rolRegistrado.IdRoles
             };
 
-            _context.Usuarios.Add(user);
+            _context.Usuarios.Add(usuario);
 
-            /*
-             * El token ahora queda asociado al usuario creado y no puede
-             * volver a utilizarse.
-             */
-            tokenRegistro.IdUsuarioTok = user.IdUsuario;
-            tokenRegistro.Usado = "1";
+            // 4. Marcar el token como usado.
+            tokenValido.Usado = "1";
+            tokenValido.IdUsuarioTok = usuario.IdUsuario;
+            _context.Tokens.Update(tokenValido);
 
             await _context.SaveChangesAsync();
 
-            await BitacoraHelper.RegistrarAccionAsync(
-                _bitacoraService,
-                user.IdUsuario,
-                "REGISTRO",
-                $"Usuario registrado con correo verificado: {user.Correo}"
-            );
-
-            return user;
-        }
-        // ==================== PASSWORD RESET (usando Token) ====================
-        public async Task<string?> GeneratePasswordResetTokenAsync(string email)
-        {
-            var user = await _context.Usuarios.FirstOrDefaultAsync(u => u.Correo == email);
-            if (user == null) return null;
-
-            // Invalidar tokens anteriores de tipo Reset
-            var oldTokens = await _context.Tokens
-                .Where(t => t.IdUsuarioTok == user.IdUsuario && t.TipoTok == "Reset" && t.Usado != "1")
-                .ToListAsync();
-
-            foreach (var t in oldTokens) t.Usado = "1";
-
-            var resetToken = new Token
-            {
-                IdUsuarioTok = user.IdUsuario,
-                CodigoTok = Guid.NewGuid().ToString("N"),
-                TipoTok = "Reset",
-                FechaCreacionTok = DateTime.UtcNow,
-                FechaExpiracionTok = DateTime.UtcNow.AddHours(2),
-                Usado = "0"
-            };
-
-            _context.Tokens.Add(resetToken);
-            await _context.SaveChangesAsync();
-
-            // Enviar correo con el token
+            // 5. Bitácora del registro.
             try
             {
-                await _emailService.SendPasswordResetEmailAsync(user.Correo, resetToken.CodigoTok);
+                await _bitacoraService.CreateBitacoraAsync(new()
+                {
+                    IdUsuarioBit = usuario.IdUsuario,
+                    AccionBit = "REGISTRO_USUARIO",
+                    DetalleBit = $"El usuario {usuario.Correo} completó su registro."
+                });
             }
-            catch (Exception ex)
+            catch
             {
-                // Mostrar el error real en la consola
-                Console.WriteLine("══════════════════════════════════════");
-                Console.WriteLine("ERROR AL ENVIAR CORREO:");
-                Console.WriteLine(ex.Message);
-                Console.WriteLine("══════════════════════════════════════");
+                // No detenemos el registro si la bitácora falla.
             }
 
-            await BitacoraHelper.RegistrarAccionAsync(_bitacoraService, user.IdUsuario, "SOLICITUD_RESET_PASSWORD", "Solicitó restablecimiento de contraseña");
-
-            return resetToken.CodigoTok;
-        }
-
-        public async Task<bool> ResetPasswordAsync(string token, string newPassword)
-        {
-            var tokenEntity = await _context.Tokens
-                .FirstOrDefaultAsync(t => t.CodigoTok == token && t.TipoTok == "Reset" && t.Usado != "1");
-
-            if (tokenEntity == null || tokenEntity.FechaExpiracionTok < DateTime.UtcNow)
-                return false;
-
-            var user = await _context.Usuarios.FindAsync(tokenEntity.IdUsuarioTok);
-            if (user == null) return false;
-
-            // Verificar que no reutilice contraseñas antiguas
-            if (await IsPasswordReusedAsync(user, newPassword))
-                return false;
-
-            await SavePasswordToHistoryAsync(user);
-
-            var hasher = new PasswordHasher<Usuario>();
-            user.Password = hasher.HashPassword(user, newPassword);
-            tokenEntity.Usado = "1";
-
-            await _context.SaveChangesAsync();
-
-            await BitacoraHelper.RegistrarAccionAsync(_bitacoraService, user.IdUsuario, "RESET_PASSWORD", "Restableció su contraseña");
-
-            return true;
-        }
-
-        public async Task<bool> ChangePasswordAsync(string userId, string currentPassword, string newPassword)
-        {
-            var user = await _context.Usuarios.FindAsync(userId);
-            if (user == null) return false;
-
-            var hasher = new PasswordHasher<Usuario>();
-
-            if (hasher.VerifyHashedPassword(user, user.Password, currentPassword) != PasswordVerificationResult.Success)
-                return false;
-
-            if (await IsPasswordReusedAsync(user, newPassword))
-                return false;
-
-            await SavePasswordToHistoryAsync(user);
-
-            user.Password = hasher.HashPassword(user, newPassword);
-            await _context.SaveChangesAsync();
-
-            await BitacoraHelper.RegistrarAccionAsync(_bitacoraService, userId, "CAMBIO_PASSWORD", "Cambió su contraseña");
-
-            return true;
-        }
-
-        // ==================== MÉTODOS PRIVADOS ====================
-        private async Task<bool> IsPasswordReusedAsync(Usuario user, string newPassword)
-        {
-            var hasher = new PasswordHasher<Usuario>();
-            var history = await _context.HistorialContra
-                .Where(h => h.IdUsuarioHco == user.IdUsuario)
-                .OrderByDescending(h => h.FechaHco)
-                .Take(5)
-                .ToListAsync();
-
-            foreach (var old in history)
-            {
-                if (hasher.VerifyHashedPassword(user, old.PasswordHashHco, newPassword) == PasswordVerificationResult.Success)
-                    return true;
-            }
-            return false;
-        }
-
-        private async Task SavePasswordToHistoryAsync(Usuario user)
-        {
-            var history = new HistorialContrasena
-            {
-                IdUsuarioHco = user.IdUsuario,
-                PasswordHashHco = user.Password,
-                FechaHco = DateTime.UtcNow
-            };
-
-            _context.HistorialContra.Add(history);
-            await _context.SaveChangesAsync();
+            return usuario;
         }
 
         // ==================== REFRESH TOKEN ====================
-        public async Task<TokenResponseDto?> RefreshTokensAsync(RefreshTokenRequestDto requestDto)
+        public async Task<TokenResponseDto?> RefreshTokensAsync(
+            RefreshTokenRequestDto requestDto)
         {
-            var user = await ValidateTokenRefreshTokenAsync(requestDto.UserId, requestDto.RefreshToken);
+            var user = await _context.Usuarios
+                .Include(u => u.Rol)
+                .FirstOrDefaultAsync(u =>
+                    u.IdUsuario == requestDto.UserId &&
+                    u.RefreshToken == requestDto.RefreshToken);
+
             if (user is null) return null;
-            return await CreateTokenResponse(user);
+            if (user.RefreshTokenExpiryTime <= DateTime.UtcNow) return null;
+
+            return await GenerateTokenAsync(user);
         }
 
-        private async Task<TokenResponseDto> CreateTokenResponse(Usuario user)
+        // ==================== PASSWORD RESET ====================
+        public async Task<string?> GeneratePasswordResetTokenAsync(string email)
         {
-            return new TokenResponseDto
+            var user = await _context.Usuarios
+                .FirstOrDefaultAsync(u => u.Correo == email);
+
+            if (user == null) return null;
+
+            // 1. Generar código aleatorio.
+            var codigo = GenerarCodigoNumerico(6);
+
+            // 2. Construir el correo.
+            var emailDto = new EmailDto
             {
-                AccessToken = CreateToken(user),
-                RefreshToken = await GetUserByRefreshTokenAsync(user)
+                To = email,
+                Subject = "🔐 Restablecimiento de contraseña - Smart Biodiversity",
+                Body = ConstruirCuerpoCodigoHtml(codigo, "Restablecimiento de contraseña")
             };
-        }
+            _emailService.SendEmail(emailDto);
 
-        private async Task<Usuario?> ValidateTokenRefreshTokenAsync(string userId, string refreshToken)
-        {
-            var user = await _context.Usuarios.FirstOrDefaultAsync(u => u.IdUsuario == userId);
-            if (user is null || user.RefreshToken != refreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
-                return null;
-            return user;
-        }
-
-        private async Task<string> GetUserByRefreshTokenAsync(Usuario user)
-        {
-            var refreshToken = GenerateRefreshToken();
-            user.RefreshToken = refreshToken;
-            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-            await _context.SaveChangesAsync();
-            return refreshToken;
-        }
-
-        private string GenerateRefreshToken()
-        {
-            var randomNumber = new byte[32];
-            using var rng = RandomNumberGenerator.Create();
-            rng.GetBytes(randomNumber);
-            return Convert.ToBase64String(randomNumber);
-        }
-
-        private string CreateToken(Usuario user)
-        {
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, user.Correo),
-                new Claim(ClaimTypes.NameIdentifier, user.IdUsuario),
-                new Claim(ClaimTypes.Role, user.Rol?.NombreRol ?? "Visitante")
-            };
-
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["AppSettings:Token"]!));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
-
-            var token = new JwtSecurityToken(
-                issuer: _configuration["AppSettings:Issuer"],
-                audience: _configuration["AppSettings:Audience"],
-                claims: claims,
-                expires: DateTime.UtcNow.AddDays(1),
-                signingCredentials: creds
-            );
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
-        }
-        public async Task<bool> SendVerificationCodeAsync(string email)
-        {
-            email = email.Trim().ToLowerInvariant();
-
-            var usuarioExiste = await _context.Usuarios
-                .AnyAsync(u => u.Correo.ToLower() == email);
-
-            if (usuarioExiste)
-                return false;
-
-            // Invalida anteriores códigos de registro del mismo correo.
-            var tokensAnteriores = await _context.Tokens
-                .Where(t =>
-                    t.CorreoTok == email &&
-                    t.TipoTok == "Registro" &&
-                    t.Usado != "1")
-                .ToListAsync();
-
-            foreach (var tokenAnterior in tokensAnteriores)
-            {
-                tokenAnterior.Usado = "1";
-            }
-
-            // Código seguro aleatorio entre 100000 y 999999.
-            var codigo = RandomNumberGenerator
-                .GetInt32(100000, 1000000)
-                .ToString();
-
+            // 3. Persistir el token.
             var token = new Token
             {
-                IdTokens = "REG-" + Guid.NewGuid().ToString("N")
-                    .Substring(0, 10).ToUpper(),
-
-                // Aún no hay usuario creado.
-                IdUsuarioTok = null,
-
+                IdTokens = "TOK-" + Guid.NewGuid().ToString("N").Substring(0, 10).ToUpper(),
+                IdUsuarioTok = user.IdUsuario,
                 CorreoTok = email,
-
-                // Se guarda hash, no el código visible.
-                CodigoTok = GenerarHash(codigo),
-
-                TipoTok = "Registro",
+                CodigoTok = HashSha256(codigo),
+                TipoTok = "Reset",
                 FechaCreacionTok = DateTime.UtcNow,
-                FechaExpiracionTok = DateTime.UtcNow.AddMinutes(10),
+                FechaExpiracionTok = DateTime.UtcNow.AddMinutes(CodigoExpiracionMinutos),
                 Usado = "0"
             };
 
             _context.Tokens.Add(token);
             await _context.SaveChangesAsync();
 
-            await _emailService.SendVerificationCodeEmailAsync(
-                email,
-                codigo
-            );
+            return codigo;
+        }
+
+        public async Task<bool> ResetPasswordAsync(string token, string newPassword)
+        {
+            // Mantengo la firma original: validación contra la entidad Token por CódigoTok.
+            var tokenEntity = await _context.Tokens
+                .FirstOrDefaultAsync(t =>
+                    t.CodigoTok == token &&
+                    t.TipoTok == "Reset" &&
+                    t.Usado == "0" &&
+                    t.FechaExpiracionTok > DateTime.UtcNow);
+
+            if (tokenEntity == null) return false;
+
+            var user = await _context.Usuarios
+                .FirstOrDefaultAsync(u => u.IdUsuario == tokenEntity.IdUsuarioTok);
+            if (user == null) return false;
+
+            var passwordHasher = new PasswordHasher<Usuario>();
+            user.Password = passwordHasher.HashPassword(user, newPassword);
+            tokenEntity.Usado = "1";
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> ChangePasswordAsync(
+            string userId,
+            string currentPassword,
+            string newPassword)
+        {
+            var user = await _context.Usuarios.FirstOrDefaultAsync(u => u.IdUsuario == userId);
+            if (user == null) return false;
+
+            var hasher = new PasswordHasher<Usuario>();
+            if (hasher.VerifyHashedPassword(user, user.Password, currentPassword)
+                == PasswordVerificationResult.Failed)
+                return false;
+
+            user.Password = hasher.HashPassword(user, newPassword);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        // ==================== ENVÍO DE CÓDIGO DE REGISTRO ====================
+        public async Task<bool> SendVerificationCodeAsync(string email)
+        {
+            // ====== TRAZAS DE DIAGNÓSTICO (NO MODIFICAN LA LÓGICA) ======
+            var swTotal = Stopwatch.StartNew();
+            Console.WriteLine($"[TRAZA] {DateTime.Now:HH:mm:ss.fff} SendVerificationCodeAsync INICIO  email={email}");
+            // ============================================================
+
+            // 1. No enviar si el correo ya está registrado.
+            var sw = Stopwatch.StartNew();
+            bool correoYaRegistrado = await _context.Usuarios.AnyAsync(u => u.Correo == email);
+            sw.Stop();
+            Console.WriteLine($"[TRAZA] {DateTime.Now:HH:mm:ss.fff} SELECT Usuarios.Any           {sw.ElapsedMilliseconds} ms   existe={correoYaRegistrado}");
+
+            if (correoYaRegistrado) return false;
+
+            // 2. Invalidar cualquier token pendiente previo del mismo correo
+            //    (mismo flujo que "reenviar").
+            sw.Restart();
+            var tokensPrevios = await _context.Tokens
+                .Where(t =>
+                    t.CorreoTok == email &&
+                    t.TipoTok == "Registro" &&
+                    t.Usado == "0")
+                .ToListAsync();
+            sw.Stop();
+            Console.WriteLine($"[TRAZA] {DateTime.Now:HH:mm:ss.fff} SELECT Tokens previos         {sw.ElapsedMilliseconds} ms   count={tokensPrevios.Count}");
+
+            sw.Restart();
+            foreach (var t in tokensPrevios)
+            {
+                t.Usado = "1";
+            }
+            sw.Stop();
+            Console.WriteLine($"[TRAZA] {DateTime.Now:HH:mm:ss.fff} Marcar previos como usados  {sw.ElapsedMilliseconds} ms");
+
+            // 3. Generar código nuevo.
+            sw.Restart();
+            var codigo = GenerarCodigoNumerico(6);
+            sw.Stop();
+            Console.WriteLine($"[TRAZA] {DateTime.Now:HH:mm:ss.fff} Generar código 6 dígitos    {sw.ElapsedMilliseconds} ms   codigo={codigo}");
+
+            // 4. Construir EmailDto y enviar usando IEmailService.
+            sw.Restart();
+            var emailDto = new EmailDto
+            {
+                To = email,
+                Subject = "🌱 Verificación de registro - Smart Biodiversity",
+                Body = ConstruirCuerpoCodigoHtml(
+                    codigo,
+                    "Verificación de correo electrónico")
+            };
+            sw.Stop();
+            Console.WriteLine($"[TRAZA] {DateTime.Now:HH:mm:ss.fff} Construir EmailDto (HTML)    {sw.ElapsedMilliseconds} ms   bytes={emailDto.Body.Length}");
+
+            Console.WriteLine($"[TRAZA] {DateTime.Now:HH:mm:ss.fff} >>> Llamando a IEmailService.SendEmail ...");
+            sw.Restart();
+            try
+            {
+                _emailService.SendEmail(emailDto);
+                sw.Stop();
+                Console.WriteLine($"[TRAZA] {DateTime.Now:HH:mm:ss.fff} <<< SendEmail OK              {sw.ElapsedMilliseconds} ms");
+            }
+            catch (Exception exSmtp)
+            {
+                sw.Stop();
+                Console.WriteLine($"[TRAZA] {DateTime.Now:HH:mm:ss.fff} <<< SendEmail FALLÓ           {sw.ElapsedMilliseconds} ms");
+                Console.WriteLine($"[TRAZA]   Tipo   : {exSmtp.GetType().FullName}");
+                Console.WriteLine($"[TRAZA]   Mensaje: {exSmtp.Message}");
+                if (exSmtp.InnerException != null)
+                    Console.WriteLine($"[TRAZA]   Inner  : {exSmtp.InnerException.Message}");
+                // Si el envío falla, revertimos cualquier cambio previo.
+                return false;
+            }
+
+            // 5. Persistir el token (con HASH, no el código en plano).
+            sw.Restart();
+            var token = new Token
+            {
+                IdTokens = "TOK-" + Guid.NewGuid().ToString("N").Substring(0, 10).ToUpper(),
+                IdUsuarioTok = null,        // todavía no existe usuario
+                CorreoTok = email,
+                CodigoTok = HashSha256(codigo),
+                TipoTok = "Registro",
+                FechaCreacionTok = DateTime.UtcNow,
+                FechaExpiracionTok = DateTime.UtcNow.AddMinutes(CodigoExpiracionMinutos),
+                Usado = "0"
+            };
+
+            _context.Tokens.Add(token);
+            await _context.SaveChangesAsync();
+            sw.Stop();
+            Console.WriteLine($"[TRAZA] {DateTime.Now:HH:mm:ss.fff} INSERT Token + SaveChanges   {sw.ElapsedMilliseconds} ms   tokenId={token.IdTokens}");
+
+            swTotal.Stop();
+            Console.WriteLine($"[TRAZA] {DateTime.Now:HH:mm:ss.fff} SendVerificationCodeAsync FIN  total={swTotal.ElapsedMilliseconds} ms");
+            Console.WriteLine(new string('-', 80));
 
             return true;
         }
 
-        public async Task<bool> VerifyRegistrationCodeAsync(
-            string email,
-            string codigo)
+        // ==================== VERIFICACIÓN DE CÓDIGO DE REGISTRO ====================
+        public async Task<bool> VerifyRegistrationCodeAsync(string email, string codigo)
         {
-            email = email.Trim().ToLowerInvariant();
-
-            var codigoHash = GenerarHash(codigo.Trim());
-
-            var token = await _context.Tokens
-                .Where(t =>
-                    t.CorreoTok == email &&
-                    t.CodigoTok == codigoHash &&
-                    t.TipoTok == "Registro" &&
-                    t.Usado != "1" &&
-                    t.FechaExpiracionTok >= DateTime.UtcNow)
-                .OrderByDescending(t => t.FechaCreacionTok)
-                .FirstOrDefaultAsync();
-
-            return token != null;
+            var tokenValido = await ObtenerTokenValidoAsync(email, codigo, "Registro");
+            return tokenValido != null;
         }
 
-        private static string GenerarHash(string texto)
+        // ============================================================
+        // =============== MÉTODOS PRIVADOS DE APOYO ==================
+        // ============================================================
+
+        /// <summary>
+        /// Busca en la tabla Tokens un registro que coincida con el correo,
+        /// el tipo, que esté vigente y cuyo HASH coincida con el código recibido.
+        /// </summary>
+        private async Task<Token?> ObtenerTokenValidoAsync(
+            string email,
+            string codigo,
+            string tipo)
         {
-            using var sha256 = SHA256.Create();
+            if (string.IsNullOrWhiteSpace(email) ||
+                string.IsNullOrWhiteSpace(codigo))
+                return null;
 
-            var bytes = sha256.ComputeHash(
-                Encoding.UTF8.GetBytes(texto)
-            );
+            var hash = HashSha256(codigo);
 
+            return await _context.Tokens
+                .Where(t =>
+                    t.CorreoTok == email &&
+                    t.TipoTok == tipo &&
+                    t.CodigoTok == hash &&
+                    t.Usado == "0" &&
+                    t.FechaExpiracionTok > DateTime.UtcNow)
+                .OrderByDescending(t => t.FechaCreacionTok)
+                .FirstOrDefaultAsync();
+        }
+
+        /// <summary>
+        /// Genera un código numérico aleatorio de la longitud indicada.
+        /// </summary>
+        private static string GenerarCodigoNumerico(int longitud)
+        {
+            var buffer = new byte[4];
+            using var rng = RandomNumberGenerator.Create();
+            rng.GetBytes(buffer);
+
+            // Aseguramos que el número tenga exactamente 'longitud' dígitos.
+            var valor = Math.Abs(BitConverter.ToInt32(buffer, 0));
+            var codigo = (valor % (int)Math.Pow(10, longitud))
+                .ToString()
+                .PadLeft(longitud, '0');
+
+            return codigo;
+        }
+
+        /// <summary>
+        /// Genera el hash SHA-256 en hexadecimal de un texto.
+        /// </summary>
+        private static string HashSha256(string texto)
+        {
+            using var sha = SHA256.Create();
+            var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(texto));
             return Convert.ToHexString(bytes);
+        }
+
+        /// <summary>
+        /// Construye el HTML del correo con un diseño amigable.
+        /// </summary>
+        private static string ConstruirCuerpoCodigoHtml(string codigo, string titulo)
+        {
+            return $@"
+<!DOCTYPE html>
+<html lang=""es"">
+<head>
+    <meta charset=""UTF-8"">
+    <title>{titulo}</title>
+</head>
+<body style=""margin:0;padding:0;background-color:#f4f6fa;font-family:Arial,Helvetica,sans-serif;"">
+    <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" style=""background-color:#f4f6fa;padding:32px 0;"">
+        <tr>
+            <td align=""center"">
+                <table role=""presentation"" width=""480"" cellpadding=""0"" cellspacing=""0""
+                       style=""background-color:#ffffff;border-radius:12px;
+                              box-shadow:0 4px 18px rgba(15,23,42,0.08);
+                              overflow:hidden;"">
+                    <tr>
+                        <td style=""background-color:#059669;padding:24px;text-align:center;color:#ffffff;"">
+                            <h1 style=""margin:0;font-size:22px;"">🌱 Smart Biodiversity</h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style=""padding:32px;color:#0f172a;"">
+                            <h2 style=""margin:0 0 12px;font-size:20px;color:#065f46;"">
+                                {titulo}
+                            </h2>
+                            <p style=""margin:0 0 16px;line-height:1.5;color:#334155;font-size:15px;"">
+                                Hola 👋,<br><br>
+                                Usa el siguiente código para continuar con tu proceso.
+                                Este código caduca en
+                                <strong>{CodigoExpiracionMinutos} minutos</strong>.
+                            </p>
+                            <div style=""margin:24px 0;text-align:center;"">
+                                <span style=""display:inline-block;background-color:#ecfdf5;
+                                             color:#065f46;font-size:32px;font-weight:bold;
+                                             letter-spacing:8px;padding:16px 28px;
+                                             border-radius:10px;border:2px dashed #059669;"">
+                                    {codigo}
+                                </span>
+                            </div>
+                            <p style=""margin:0 0 8px;line-height:1.5;color:#334155;font-size:14px;"">
+                                Si tú no solicitaste este código, puedes ignorar este mensaje.
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style=""background-color:#f1f5f9;padding:16px;text-align:center;
+                                   color:#64748b;font-size:12px;"">
+                            © {DateTime.UtcNow.Year} Smart Biodiversity · Campus El Olivo
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>";
+        }
+
+        // ==================== JWT ====================
+        private async Task<TokenResponseDto> GenerateTokenAsync(Usuario user)
+        {
+            var securityKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(_configuration["AppSettings:Token"]!));
+            var credentials = new SigningCredentials(
+                securityKey, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.IdUsuario),
+                new Claim(ClaimTypes.Name, user.Nombres),
+                new Claim(ClaimTypes.Email, user.Correo),
+                new Claim(ClaimTypes.Role, user.Rol?.NombreRol ?? "Usuario Registrado")
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: _configuration["AppSettings:Issuer"],
+                audience: _configuration["AppSettings:Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddHours(1),
+                signingCredentials: credentials);
+
+            var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
+
+            // Refresh token aleatorio
+            var refreshToken = Convert.ToBase64String(
+                RandomNumberGenerator.GetBytes(64));
+
+            user.RefreshToken = refreshToken;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+            await _context.SaveChangesAsync();
+
+            return new TokenResponseDto
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken
+            };
         }
     }
 }
