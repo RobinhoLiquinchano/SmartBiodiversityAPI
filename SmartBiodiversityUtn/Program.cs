@@ -79,13 +79,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 // ====================== CORS ======================
+// ====================== CORS ======================
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowMVC", policy =>
+    options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins("https://localhost:7265")
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        policy.AllowAnyOrigin()           // Permite cualquier origen
+              .AllowAnyMethod()            // GET, POST, PUT, DELETE, etc
+              .AllowAnyHeader();           // Todos los headers
     });
 });
 
