@@ -1,6 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
+﻿using MailKit.Net.Smtp;
+using MailKit.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MimeKit;
+using MimeKit.Text;
 using SmartBiodiversityUtn.Services;
 using SmartBiodiversityUtnModels.DTOs.Account;
 using SmartBiodiversityUtnModels.Entities;
@@ -103,8 +106,7 @@ namespace SmartBiodiversityUtn.Controllers
 
         [HttpPost("send-verification-code")]
         [AllowAnonymous]
-        public async Task<IActionResult> SendVerificationCode(
-    SendVerificationCodeRequest request)
+        public async Task<IActionResult> SendVerificationCode(SendVerificationCodeRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -155,5 +157,6 @@ namespace SmartBiodiversityUtn.Controllers
                 verified = true
             });
         }
+        
     }
 }
