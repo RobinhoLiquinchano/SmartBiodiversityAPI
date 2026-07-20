@@ -153,7 +153,7 @@ namespace SmartBiodiversityUtn.Services
                 Subject = "🔐 Restablecimiento de contraseña - Smart Biodiversity",
                 Body = ConstruirCuerpoCodigoHtml(codigo, "Restablecimiento de contraseña")
             };
-            _emailService.SendEmail(emailDto);
+            await _emailService.SendEmailAsync(emailDto);
 
             // 3. Persistir el token.
             var token = new Token
@@ -275,7 +275,7 @@ namespace SmartBiodiversityUtn.Services
             sw.Restart();
             try
             {
-                _emailService.SendEmail(emailDto);
+                await _emailService.SendEmailAsync(emailDto);
                 sw.Stop();
                 Console.WriteLine($"[TRAZA] {DateTime.Now:HH:mm:ss.fff} <<< SendEmail OK              {sw.ElapsedMilliseconds} ms");
             }

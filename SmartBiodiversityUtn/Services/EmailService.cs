@@ -15,12 +15,12 @@ namespace SmartBiodiversityUtn.Services
             _configuration = configuration;
         }
 
-        public void SendEmail(EmailDto request)
+        public async Task SendEmailAsync(EmailDto request)
         {
-            // ====== TRAZAS DE DIAGNÓSTICO (NO MODIFICAN LA LÓGICA) ======
+            // ====== TRAZAS DE DIAGNÓSTICO ======
             var swTotal = Stopwatch.StartNew();
-            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} EmailService.SendEmail INICIO to={request.To}");
-            // ============================================================
+            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} EmailService.SendEmailAsync INICIO to={request.To}");
+            // ====================================
 
             var email = new MimeMessage();
             email.From.Add(MailboxAddress.Parse(_configuration["EmailUsername"]));
@@ -41,18 +41,22 @@ namespace SmartBiodiversityUtn.Services
 
             using var smtp = new SmtpClient();
 
-            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} >>> smtp.Connect({host}, 587, StartTls) ...");
+            // ✅ Agregar timeout
+            smtp.Timeout = 10000; // 10 segundos
+
+            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} >>> smtp.ConnectAsync({host}, 587, StartTls) ...");
             var sw = Stopwatch.StartNew();
             try
             {
-                smtp.Connect(host, 587, SecureSocketOptions.StartTls);
+                // ✅ Cambiar a async
+                await smtp.ConnectAsync(host, 587, SecureSocketOptions.StartTls);
                 sw.Stop();
-                Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} <<< smtp.Connect OK          {sw.ElapsedMilliseconds} ms");
+                Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} <<< smtp.ConnectAsync OK          {sw.ElapsedMilliseconds} ms");
             }
             catch (Exception ex)
             {
                 sw.Stop();
-                Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} <<< smtp.Connect FALLÓ       {sw.ElapsedMilliseconds} ms");
+                Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} <<< smtp.ConnectAsync FALLÓ       {sw.ElapsedMilliseconds} ms");
                 Console.WriteLine($"[EMAIL ]   Tipo   : {ex.GetType().FullName}");
                 Console.WriteLine($"[EMAIL ]   Mensaje: {ex.Message}");
                 if (ex.InnerException != null)
@@ -60,18 +64,19 @@ namespace SmartBiodiversityUtn.Services
                 throw;
             }
 
-            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} >>> smtp.Authenticate(user) ...");
+            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} >>> smtp.AuthenticateAsync(user) ...");
             sw.Restart();
             try
             {
-                smtp.Authenticate(user, pass);
+                // ✅ Cambiar a async
+                await smtp.AuthenticateAsync(user, pass);
                 sw.Stop();
-                Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} <<< smtp.Authenticate OK     {sw.ElapsedMilliseconds} ms");
+                Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} <<< smtp.AuthenticateAsync OK     {sw.ElapsedMilliseconds} ms");
             }
             catch (Exception ex)
             {
                 sw.Stop();
-                Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} <<< smtp.Authenticate FALLÓ  {sw.ElapsedMilliseconds} ms");
+                Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} <<< smtp.AuthenticateAsync FALLÓ  {sw.ElapsedMilliseconds} ms");
                 Console.WriteLine($"[EMAIL ]   Tipo   : {ex.GetType().FullName}");
                 Console.WriteLine($"[EMAIL ]   Mensaje: {ex.Message}");
                 if (ex.InnerException != null)
@@ -79,18 +84,19 @@ namespace SmartBiodiversityUtn.Services
                 throw;
             }
 
-            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} >>> smtp.Send(email) ...");
+            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} >>> smtp.SendAsync(email) ...");
             sw.Restart();
             try
             {
-                smtp.Send(email);
+                // ✅ Cambiar a async
+                await smtp.SendAsync(email);
                 sw.Stop();
-                Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} <<< smtp.Send OK             {sw.ElapsedMilliseconds} ms");
+                Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} <<< smtp.SendAsync OK             {sw.ElapsedMilliseconds} ms");
             }
             catch (Exception ex)
             {
                 sw.Stop();
-                Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} <<< smtp.Send FALLÓ          {sw.ElapsedMilliseconds} ms");
+                Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} <<< smtp.SendAsync FALLÓ          {sw.ElapsedMilliseconds} ms");
                 Console.WriteLine($"[EMAIL ]   Tipo   : {ex.GetType().FullName}");
                 Console.WriteLine($"[EMAIL ]   Mensaje: {ex.Message}");
                 if (ex.InnerException != null)
@@ -98,14 +104,15 @@ namespace SmartBiodiversityUtn.Services
                 throw;
             }
 
-            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} >>> smtp.Disconnect(true) ...");
+            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} >>> smtp.DisconnectAsync(true) ...");
             sw.Restart();
-            smtp.Disconnect(true);
+            // ✅ Cambiar a async
+            await smtp.DisconnectAsync(true);
             sw.Stop();
-            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} <<< smtp.Disconnect OK       {sw.ElapsedMilliseconds} ms");
+            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} <<< smtp.DisconnectAsync OK       {sw.ElapsedMilliseconds} ms");
 
             swTotal.Stop();
-            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} EmailService.SendEmail FIN  total={swTotal.ElapsedMilliseconds} ms");
+            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} EmailService.SendEmailAsync FIN  total={swTotal.ElapsedMilliseconds} ms");
             Console.WriteLine(new string('-', 80));
         }
     }
