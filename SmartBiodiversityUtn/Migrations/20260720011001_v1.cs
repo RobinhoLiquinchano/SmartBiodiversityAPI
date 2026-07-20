@@ -15,8 +15,8 @@ namespace SmartBiodiversityUtn.Migrations
                 name: "Categorias",
                 columns: table => new
                 {
-                    IdCategorias = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    NombreCat = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
+                    IdCategorias = table.Column<string>(type: "text", nullable: false),
+                    NombreCat = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -27,8 +27,8 @@ namespace SmartBiodiversityUtn.Migrations
                 name: "Roles",
                 columns: table => new
                 {
-                    IdRoles = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    NombreRol = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false)
+                    IdRoles = table.Column<string>(type: "text", nullable: false),
+                    NombreRol = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -39,14 +39,14 @@ namespace SmartBiodiversityUtn.Migrations
                 name: "Especies",
                 columns: table => new
                 {
-                    IdEspecies = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    IdCategoriaEsp = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    NombreComunEsp = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    NombreCientificoEsp = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    DescripcionEsp = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    HabitatEsp = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    EstadoEsp = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    FechaRegistroEsp = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    IdEspecies = table.Column<string>(type: "text", nullable: false),
+                    IdCategoriaEsp = table.Column<string>(type: "text", nullable: false),
+                    NombreComunEsp = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    NombreCientificoEsp = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    DescripcionEsp = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    HabitatEsp = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    EstadoEsp = table.Column<int>(type: "integer", nullable: false),
+                    FechaRegistroEsp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -63,14 +63,14 @@ namespace SmartBiodiversityUtn.Migrations
                 name: "Avisos",
                 columns: table => new
                 {
-                    IdAvisos = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    IdRolesAvi = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    TituloAvi = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    MensajeAvi = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    CategoriaAvi = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    ActivoAvi = table.Column<bool>(type: "bit", nullable: false),
-                    FechaIniAvi = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    FechaFinAvi = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    IdAvisos = table.Column<string>(type: "text", nullable: false),
+                    IdRolesAvi = table.Column<string>(type: "text", nullable: false),
+                    TituloAvi = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    MensajeAvi = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    CategoriaAvi = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    ActivoAvi = table.Column<bool>(type: "boolean", nullable: false),
+                    FechaIniAvi = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    FechaFinAvi = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -87,18 +87,18 @@ namespace SmartBiodiversityUtn.Migrations
                 name: "Usuarios",
                 columns: table => new
                 {
-                    IdUsuario = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    IdRolesU = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Apellidos = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Nombres = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Correo = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Password = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Estado = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    FechaRegistro = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IntentosFallidos = table.Column<int>(type: "int", nullable: false),
-                    BloqueoHasta = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    RefreshToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    RefreshTokenExpiryTime = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    IdUsuario = table.Column<string>(type: "text", nullable: false),
+                    IdRolesU = table.Column<string>(type: "text", nullable: false),
+                    Apellidos = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Nombres = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Correo = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Password = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Estado = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
+                    FechaRegistro = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    IntentosFallidos = table.Column<int>(type: "integer", nullable: false),
+                    BloqueoHasta = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    RefreshToken = table.Column<string>(type: "text", nullable: true),
+                    RefreshTokenExpiryTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -115,11 +115,11 @@ namespace SmartBiodiversityUtn.Migrations
                 name: "Multimedia",
                 columns: table => new
                 {
-                    IdMultimedia = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    IdEspeciesMul = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    TipoArchivoMul = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    RutaArchivoMul = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    FechaMul = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    IdMultimedia = table.Column<string>(type: "text", nullable: false),
+                    IdEspeciesMul = table.Column<string>(type: "text", nullable: false),
+                    TipoArchivoMul = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    RutaArchivoMul = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    FechaMul = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -136,16 +136,18 @@ namespace SmartBiodiversityUtn.Migrations
                 name: "Aportes",
                 columns: table => new
                 {
-                    IdAportes = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    IdUsuarioApo = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    DescripcionApo = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: false),
-                    RutaImagenApo = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: true),
-                    EstadoApo = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    FechaApo = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    IdAporte = table.Column<string>(type: "text", nullable: false),
+                    IdUsuarioApo = table.Column<string>(type: "text", nullable: false),
+                    TituloApo = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    DescripcionApo = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    RutaArchivoApo = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
+                    EstadoApo = table.Column<int>(type: "integer", nullable: false),
+                    FechaCreacionApo = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    FechaAprobacionApo = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Aportes", x => x.IdAportes);
+                    table.PrimaryKey("PK_Aportes", x => x.IdAporte);
                     table.ForeignKey(
                         name: "FK_Aportes_Usuarios_IdUsuarioApo",
                         column: x => x.IdUsuarioApo,
@@ -158,12 +160,12 @@ namespace SmartBiodiversityUtn.Migrations
                 name: "Bitacora",
                 columns: table => new
                 {
-                    IdLog = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    IdUsuarioBit = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    IdRolesBit = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    AccionBit = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    DetalleBit = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: true),
-                    FechaBit = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    IdLog = table.Column<string>(type: "text", nullable: false),
+                    IdUsuarioBit = table.Column<string>(type: "text", nullable: false),
+                    IdRolesBit = table.Column<string>(type: "text", nullable: false),
+                    AccionBit = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    DetalleBit = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
+                    FechaBit = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -186,10 +188,10 @@ namespace SmartBiodiversityUtn.Migrations
                 name: "HistorialContra",
                 columns: table => new
                 {
-                    IdHistorialHco = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    IdUsuarioHco = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    PasswordHashHco = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    FechaHco = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    IdHistorialHco = table.Column<string>(type: "text", nullable: false),
+                    IdUsuarioHco = table.Column<string>(type: "text", nullable: false),
+                    PasswordHashHco = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    FechaHco = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -206,13 +208,13 @@ namespace SmartBiodiversityUtn.Migrations
                 name: "Tokens",
                 columns: table => new
                 {
-                    IdTokens = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    IdUsuarioTok = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    CodigoTok = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    TipoTok = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    FechaCreacionTok = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    FechaExpiracionTok = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Usado = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true)
+                    IdTokens = table.Column<string>(type: "text", nullable: false),
+                    IdUsuarioTok = table.Column<string>(type: "text", nullable: false),
+                    CodigoTok = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    TipoTok = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
+                    FechaCreacionTok = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    FechaExpiracionTok = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Usado = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true)
                 },
                 constraints: table =>
                 {

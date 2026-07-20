@@ -25,6 +25,15 @@ namespace SmartBiodiversityUtn.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            // Mapear enums como int (igual que en SQL Server)
+            modelBuilder.Entity<Aporte>()
+                .Property(a => a.EstadoApo)
+                .HasConversion<int>();
+
+            modelBuilder.Entity<Especie>()
+                .Property(e => e.EstadoEsp)
+                .HasConversion<int>();
+
             // ---------- ROLES (IdRoles es string) ----------
             modelBuilder.Entity<Rol>(entity =>
             {

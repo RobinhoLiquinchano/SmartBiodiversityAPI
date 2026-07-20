@@ -11,10 +11,38 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 
-// CONEXIÓN A BASE DE DATOS 
-var connectionString = builder.Configuration.GetConnectionString("SmartBiodiversityUtnContext") ?? throw new InvalidOperationException("Connection string 'SmartBiodiversityUtnContext' not found.");
+// === CONFIGURACIÓN DE BASE DE DATOS ===
+builder.Services.AddDbContext<SmartBiodiversityUtnContext>(options =>
+{
+    // 1. Intentar obtener desde variable de entorno (usualmente definido en Render)
+    var envConnection = Environment.GetEnvironmentVariable("DefaultConnection");
 
-builder.Services.AddDbContext<SmartBiodiversityUtnContext>(options => options.UseSqlServer(connectionString));
+    if (!string.IsNullOrWhiteSpace(envConnection))
+    {
+        options.UseNpgsql(envConnection);
+        Console.WriteLine("Base de datos configurada mediante variable de entorno");
+    }
+    else
+    {
+        // 2. Si no, buscar en appsettings.json
+        // Primero buscamos tu clave específica
+        var localConnection = builder.Configuration.GetConnectionString("SmartBiodiversityUtnContext");
+
+        // Si no existe, probamos una alternativa genérica por si acaso
+        if (string.IsNullOrWhiteSpace(localConnection))
+        {
+            localConnection = builder.Configuration.GetConnectionString("DefaultConnection");
+        }
+
+        if (string.IsNullOrWhiteSpace(localConnection))
+        {
+            throw new InvalidOperationException("No se encontró ninguna cadena de conexión válida en appsettings.json ni en variables de entorno.");
+        }
+
+        options.UseNpgsql(localConnection);
+        Console.WriteLine("Base de datos configurada mediante appsettings.json");
+    }
+});
 
 // SERVICIOS 
 builder.Services.AddControllers();
