@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="SmartBiodiversityUtn/SmartBiodiversityUtn.csproj" />
   <Project Path="SmartBiodiversityUtnModels/SmartBiodiversityUtnModels.csproj" />
+  <Project Path="SmartBiodiversityUtnMVC/SmartBiodiversityUtnMVC.csproj" Id="99c4b43e-be3f-4029-aba4-9ed8f8907636" />
 </Solution>
