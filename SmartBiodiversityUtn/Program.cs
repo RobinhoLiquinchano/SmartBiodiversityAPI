@@ -29,6 +29,7 @@ builder.Services.AddHttpClient<IMultimediaService, MultimediaService>();
 builder.Services.AddScoped<IMultimediaService, MultimediaService>();
 builder.Services.AddScoped<IAporteService, AporteService>();
 builder.Services.AddScoped<IAvisoService, AvisoService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 // === BITÁCORA ===
 builder.Services.AddScoped<IBitacoraService, BitacoraService>();
 
