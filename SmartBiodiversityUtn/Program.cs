@@ -96,7 +96,14 @@ app.UseCors("AllowAll");
 
 // Configure the HTTP request pipeline.
 app.MapOpenApi();
-app.MapScalarApiReference();
+app.MapScalarApiReference(options =>
+{
+    // Esto fuerza a la interfaz de Scalar a usar tu URL segura de Render
+    options.Servers = new[]
+    {
+        new Scalar.AspNetCore.ScalarServer("https://smartbiodiversityapi.onrender.com")
+    };
+});
 app.MapGet("/", () => Results.Redirect("/scalar/v1")).ExcludeFromDescription();
 
 // ====================== SEMILLA DE ROLES Y USUARIO ADMIN ======================
