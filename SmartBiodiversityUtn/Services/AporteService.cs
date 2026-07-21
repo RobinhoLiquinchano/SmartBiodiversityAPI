@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SmartBiodiversityUtn.Data;
+using SmartBiodiversityUtn.Helpers;
 using SmartBiodiversityUtnModels.DTOs;
 using SmartBiodiversityUtnModels.DTOs.Aporte;
 using SmartBiodiversityUtnModels.DTOs.Bitacora;
