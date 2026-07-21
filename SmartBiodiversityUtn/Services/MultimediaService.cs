@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SmartBiodiversityUtn.Data;
+using SmartBiodiversityUtn.Helpers;
 using SmartBiodiversityUtnModels.DTOs.Multimedia;
 using SmartBiodiversityUtnModels.Entities;
 using System.Net.Http.Headers;
@@ -80,7 +81,7 @@ namespace SmartBiodiversityUtn.Services
                 EspecieId = multimedia.IdEspeciesMul,
                 TipoArchivo = multimedia.TipoArchivoMul,
                 RutaArchivo = multimedia.RutaArchivoMul,
-                Fecha = multimedia.FechaMul
+                Fecha = multimedia.FechaMul.ToEcuadorTime()
             };
         }
 
@@ -111,7 +112,7 @@ namespace SmartBiodiversityUtn.Services
                     EspecieId = m.IdEspeciesMul,
                     TipoArchivo = m.TipoArchivoMul,
                     RutaArchivo = m.RutaArchivoMul,
-                    Fecha = m.FechaMul
+                    Fecha = m.FechaMul.ToEcuadorTime()
                 }).FirstOrDefaultAsync();
         }
 
@@ -124,7 +125,7 @@ namespace SmartBiodiversityUtn.Services
                     EspecieId = m.IdEspeciesMul,
                     TipoArchivo = m.TipoArchivoMul,
                     RutaArchivo = m.RutaArchivoMul,
-                    Fecha = m.FechaMul
+                    Fecha = m.FechaMul.ToEcuadorTime()
                 }).ToListAsync();
         }
 

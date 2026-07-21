@@ -216,8 +216,8 @@ namespace SmartBiodiversityUtn.Services
                 DescripcionApo = aporte.DescripcionApo,
                 RutaArchivoApo = aporte.RutaArchivoApo,
                 EstadoApo = aporte.EstadoApo,
-                FechaCreacionApo = aporte.FechaCreacionApo,
-                FechaAprobacionApo = aporte.FechaAprobacionApo,
+                FechaCreacionApo = aporte.FechaCreacionApo.ToEcuadorTime(),
+                FechaAprobacionApo = aporte.FechaAprobacionApo.ToEcuadorTime(),
                 NombreUsuario = $"{usuario.Nombres} {usuario.Apellidos}",
                 CorreoUsuario = usuario.Correo
             };

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SmartBiodiversityUtn.Data;
+using SmartBiodiversityUtn.Helpers;
 using SmartBiodiversityUtnModels.DTOs.Bitacora;
 using SmartBiodiversityUtnModels.Entities;
 
@@ -66,7 +67,7 @@ namespace SmartBiodiversityUtn.Services
                 NombreRol = usuario.Rol?.NombreRol ?? "Sin rol",
                 AccionBit = bitacora.AccionBit,
                 DetalleBit = bitacora.DetalleBit,
-                FechaBit = bitacora.FechaBit
+                FechaBit = bitacora.FechaBit.ToEcuadorTime()
             };
         }
     }

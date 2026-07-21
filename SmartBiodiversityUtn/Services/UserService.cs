@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SmartBiodiversityUtn.Data;
+using SmartBiodiversityUtn.Helpers;
 using SmartBiodiversityUtnModels.DTOs.Account;
 using SmartBiodiversityUtnModels.DTOs.Bitacora;
 
@@ -33,7 +34,7 @@ public class UserService : IUserService
             Correo = usuario.Correo,
             Estado = usuario.Estado,
             NombreRol = usuario.Rol.NombreRol,
-            FechaRegistro = usuario.FechaRegistro
+            FechaRegistro = usuario.FechaRegistro.ToEcuadorTime()
         };
     }
 
@@ -82,7 +83,7 @@ public class UserService : IUserService
             Correo = u.Correo,
             Estado = u.Estado,
             NombreRol = u.Rol.NombreRol,
-            FechaRegistro = u.FechaRegistro,
+            FechaRegistro = u.FechaRegistro.ToEcuadorTime(),
             TotalAportes = u.Aportes.Count
         });
     }
@@ -105,7 +106,7 @@ public class UserService : IUserService
             Correo = usuario.Correo,
             Estado = usuario.Estado,
             NombreRol = usuario.Rol.NombreRol,
-            FechaRegistro = usuario.FechaRegistro,
+            FechaRegistro = usuario.FechaRegistro.ToEcuadorTime(),
             TotalAportes = usuario.Aportes.Count
         };
     }

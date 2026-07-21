@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SmartBiodiversityUtn.Data;
+using SmartBiodiversityUtn.Helpers;
 using SmartBiodiversityUtnModels.DTOs.Aviso;
 using SmartBiodiversityUtnModels.Entities;
 
@@ -121,8 +122,8 @@ namespace SmartBiodiversityUtn.Services
                 MensajeAvi = aviso.MensajeAvi,
                 CategoriaAvi = aviso.CategoriaAvi,
                 ActivoAvi = aviso.ActivoAvi,
-                FechaIniAvi = aviso.FechaIniAvi,
-                FechaFinAvi = aviso.FechaFinAvi,
+                FechaIniAvi = aviso.FechaIniAvi.ToEcuadorTime(),
+                FechaFinAvi = aviso.FechaFinAvi.ToEcuadorTime(),
                 NombreRol = rol?.NombreRol
             };
         }

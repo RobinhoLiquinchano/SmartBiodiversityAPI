@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SmartBiodiversityUtn.Data;
+using SmartBiodiversityUtn.Helpers;
 using SmartBiodiversityUtnModels.DTOs;
 using SmartBiodiversityUtnModels.DTOs.Especie;
 using SmartBiodiversityUtnModels.Entities;
@@ -17,7 +18,6 @@ namespace SmartBiodiversityUtn.Services
             _bitacoraService = bitacoraService;
         }
 
-        // ==================== MÉTODOS CON idUsuario ====================
         public async Task<EspecieResponse> AddEspecieAsync(CreateEspecieRequest especie, string idUsuario)
         {
             var newEspecie = new Especie
@@ -124,7 +124,7 @@ namespace SmartBiodiversityUtn.Services
                 Habitat = especie.HabitatEsp,
                 EstadoEsp = especie.EstadoEsp,
                 NombreCategoria = nombreCategoria,
-                FechaRegistroEsp = especie.FechaRegistroEsp
+                FechaRegistroEsp = especie.FechaRegistroEsp.ToEcuadorTime()
             };
         }
     }

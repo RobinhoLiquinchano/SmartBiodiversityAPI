@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SmartBiodiversityUtn.Helpers;
 using SmartBiodiversityUtn.Services;
 using SmartBiodiversityUtnModels.DTOs.Account;
+using SmartBiodiversityUtnModels.DTOs.Account.SmartBiodiversityUtnModels.DTOs.Account;
 using SmartBiodiversityUtnModels.Entities;
 using System.Security.Claims;
 
@@ -88,7 +90,7 @@ namespace SmartBiodiversityUtn.Controllers
                 apellidos = user.Apellidos,
                 correo = user.Correo,
                 estado = user.Estado,
-                fechaRegistro = user.FechaRegistro
+                fechaRegistro = user.FechaRegistro.ToEcuadorTime(),
             });
         }
 
@@ -126,7 +128,7 @@ namespace SmartBiodiversityUtn.Controllers
             if (token == null)
                 return BadRequest("Usuario no encontrado.");
 
-            return Ok(new { message = "Token de restablecimiento generado", token });
+            return Ok(new { message = "Token de restablecimiento generado"});
         }
 
         [HttpPost("reset-password")]

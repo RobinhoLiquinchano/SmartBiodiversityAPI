@@ -4,6 +4,11 @@ namespace SmartBiodiversityUtn.Helpers
 {
     public static class DateExtensions
     {
+        /// <summary>
+        /// Convierte una fecha UTC a la hora local de Ecuador (America/Guayaquil, UTC-5).
+        /// </summary>
+        /// <param name="utcDate">Fecha en UTC (ej. DateTime.UtcNow o un valor leído de la BD).</param>
+        /// <returns>La misma fecha convertida a hora de Ecuador.</returns>
         public static DateTime ToEcuadorTime(this DateTime utcDate)
         {
             try
@@ -24,6 +29,13 @@ namespace SmartBiodiversityUtn.Helpers
                 // Respaldo manual (UTC-5) en caso de que el contenedor de Docker no tenga las zonas horarias instaladas
                 return utcDate.AddHours(-5);
             }
+        }
+
+        public static DateTime? ToEcuadorTime(this DateTime? utcDate)
+        {
+            if (!utcDate.HasValue) return null;
+
+            return utcDate.Value.ToEcuadorTime();
         }
     }
 }

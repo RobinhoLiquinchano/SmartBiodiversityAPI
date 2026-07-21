@@ -143,6 +143,11 @@ namespace SmartBiodiversityUtn.Services
 
             if (user == null) return null;
 
+            var previos = await _context.Tokens
+            .Where(t => t.CorreoTok == email && t.TipoTok == "Reset" && t.Usado == "0")
+            .ToListAsync();
+                    previos.ForEach(t => t.Usado = "1");
+
             // 1. Generar código aleatorio.
             var codigo = GenerarCodigoNumerico(6);
 
@@ -176,10 +181,12 @@ namespace SmartBiodiversityUtn.Services
 
         public async Task<bool> ResetPasswordAsync(string token, string newPassword)
         {
-            // Mantengo la firma original: validación contra la entidad Token por CódigoTok.
+            // 1. Hashear el código recibido: en la BD está guardado como SHA256
+            var hash = HashSha256(token);
+
             var tokenEntity = await _context.Tokens
                 .FirstOrDefaultAsync(t =>
-                    t.CodigoTok == token &&
+                    t.CodigoTok == hash &&                      // ✅ hash vs hash
                     t.TipoTok == "Reset" &&
                     t.Usado == "0" &&
                     t.FechaExpiracionTok > DateTime.UtcNow);
@@ -190,29 +197,110 @@ namespace SmartBiodiversityUtn.Services
                 .FirstOrDefaultAsync(u => u.IdUsuario == tokenEntity.IdUsuarioTok);
             if (user == null) return false;
 
-            var passwordHasher = new PasswordHasher<Usuario>();
-            user.Password = passwordHasher.HashPassword(user, newPassword);
-            tokenEntity.Usado = "1";
+            var hasher = new PasswordHasher<Usuario>();
+
+            // 2. No permitir reutilizar las últimas 3 contraseñas
+            var historial = await _context.HistorialContra
+                .Where(h => h.IdUsuarioHco == user.IdUsuario)
+                .OrderByDescending(h => h.FechaHco)
+                .Take(3)
+                .ToListAsync();
+
+            if (historial.Any(h => hasher.VerifyHashedPassword(user, h.PasswordHashHco, newPassword)
+                                   == PasswordVerificationResult.Success))
+                return false;
+
+            // 3. Guardar la contraseña actual en el historial y aplicar la nueva
+            _context.HistorialContra.Add(new HistorialContrasena
+            {
+                IdHistorialHco = "HCO-" + Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper(),
+                IdUsuarioHco = user.IdUsuario,
+                PasswordHashHco = user.Password,     // el hash viejo
+                FechaHco = DateTime.UtcNow           // UTC (no se muestra al usuario)
+            });
+
+            user.Password = hasher.HashPassword(user, newPassword);
+            tokenEntity.Usado = "1";                  // el código es de un solo uso
+
+            // 4. Cerrar sesiones en otros dispositivos
+            user.RefreshToken = null;
+            user.RefreshTokenExpiryTime = null;
 
             await _context.SaveChangesAsync();
+
+            // 5. Bitácora (no debe bloquear el reset si falla)
+            try
+            {
+                await _bitacoraService.CreateBitacoraAsync(new()
+                {
+                    IdUsuarioBit = user.IdUsuario,
+                    AccionBit = "RESTABLECER_CONTRASENA",
+                    DetalleBit = $"El usuario {user.Correo} restableció su contraseña."
+                });
+            }
+            catch { }
+
             return true;
         }
 
         public async Task<bool> ChangePasswordAsync(
-            string userId,
-            string currentPassword,
-            string newPassword)
+    string userId,
+    string currentPassword,
+    string newPassword)
         {
             var user = await _context.Usuarios.FirstOrDefaultAsync(u => u.IdUsuario == userId);
             if (user == null) return false;
 
             var hasher = new PasswordHasher<Usuario>();
+
+            // 1. Verificar la contraseña actual
             if (hasher.VerifyHashedPassword(user, user.Password, currentPassword)
                 == PasswordVerificationResult.Failed)
                 return false;
 
+            // 2. La nueva no puede ser igual a la actual
+            if (currentPassword == newPassword) return false;
+
+            // 3. No permitir reutilizar las últimas 3 contraseñas
+            var historial = await _context.HistorialContra
+                .Where(h => h.IdUsuarioHco == userId)
+                .OrderByDescending(h => h.FechaHco)
+                .Take(3)
+                .ToListAsync();
+
+            if (historial.Any(h => hasher.VerifyHashedPassword(user, h.PasswordHashHco, newPassword)
+                                   == PasswordVerificationResult.Success))
+                return false;
+
+            // 4. Historial + nueva contraseña
+            _context.HistorialContra.Add(new HistorialContrasena
+            {
+                IdHistorialHco = "HCO-" + Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper(),
+                IdUsuarioHco = userId,
+                PasswordHashHco = user.Password,
+                FechaHco = DateTime.UtcNow
+            });
+
             user.Password = hasher.HashPassword(user, newPassword);
+
+            // 5. Forzar re-login en los demás dispositivos
+            user.RefreshToken = null;
+            user.RefreshTokenExpiryTime = null;
+
             await _context.SaveChangesAsync();
+
+            // 6. Bitácora
+            try
+            {
+                await _bitacoraService.CreateBitacoraAsync(new()
+                {
+                    IdUsuarioBit = userId,
+                    AccionBit = "CAMBIAR_CONTRASENA",
+                    DetalleBit = $"El usuario {user.Correo} cambió su contraseña."
+                });
+            }
+            catch { }
+
             return true;
         }
 
@@ -291,7 +379,6 @@ namespace SmartBiodiversityUtn.Services
                 return false;
             }
 
-            // 5. Persistir el token (con HASH, no el código en plano).
             sw.Restart();
             var token = new Token
             {
@@ -317,21 +404,12 @@ namespace SmartBiodiversityUtn.Services
             return true;
         }
 
-        // ==================== VERIFICACIÓN DE CÓDIGO DE REGISTRO ====================
         public async Task<bool> VerifyRegistrationCodeAsync(string email, string codigo)
         {
             var tokenValido = await ObtenerTokenValidoAsync(email, codigo, "Registro");
             return tokenValido != null;
         }
 
-        // ============================================================
-        // =============== MÉTODOS PRIVADOS DE APOYO ==================
-        // ============================================================
-
-        /// <summary>
-        /// Busca en la tabla Tokens un registro que coincida con el correo,
-        /// el tipo, que esté vigente y cuyo HASH coincida con el código recibido.
-        /// </summary>
         private async Task<Token?> ObtenerTokenValidoAsync(
             string email,
             string codigo,
@@ -445,7 +523,6 @@ namespace SmartBiodiversityUtn.Services
 </html>";
         }
 
-        // ==================== JWT ====================
         private async Task<TokenResponseDto> GenerateTokenAsync(Usuario user)
         {
             var securityKey = new SymmetricSecurityKey(
