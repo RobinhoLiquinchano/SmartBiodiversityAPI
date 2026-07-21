@@ -124,11 +124,17 @@ namespace SmartBiodiversityUtn.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> ForgotPassword(PasswordResetRequest request)
         {
-            var token = await authServices.GeneratePasswordResetTokenAsync(request.Email);
-            if (token == null)
-                return BadRequest("Usuario no encontrado.");
-
-            return Ok(new { message = "Token de restablecimiento generado"});
+            try
+            {
+                await authServices.GeneratePasswordResetTokenAsync(request.Email);
+                return Ok(new { message = "Si el correo está registrado, recibirá un código de restablecimiento." });
+            }
+            catch (Exception ex)
+            {
+                // Registra el error real en los logs de Render, pero al cliente le das un mensaje limpio
+                Console.WriteLine($"[AUTH] forgot-password falló: {ex}");
+                return StatusCode(500, new { message = "No se pudo enviar el código en este momento. Intenta de nuevo." });
+            }
         }
 
         [HttpPost("reset-password")]

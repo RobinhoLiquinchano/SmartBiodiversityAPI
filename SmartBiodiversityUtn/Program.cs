@@ -62,7 +62,7 @@ builder.Services.AddHttpClient<IMultimediaService, MultimediaService>();
 builder.Services.AddScoped<IMultimediaService, MultimediaService>();
 builder.Services.AddScoped<IAporteService, AporteService>();
 builder.Services.AddScoped<IAvisoService, AvisoService>();
-builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddHttpClient<IEmailService, EmailService>();
 builder.Services.AddScoped<IBitacoraService, BitacoraService>();
 builder.Services.AddScoped<IUserService, UserService>();
 

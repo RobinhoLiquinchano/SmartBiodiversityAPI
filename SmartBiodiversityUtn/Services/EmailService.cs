@@ -1,119 +1,67 @@
 ﻿using System.Diagnostics;
-using MailKit.Net.Smtp;
-using MailKit.Security;
-using MimeKit;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 using SmartBiodiversityUtnModels.DTOs.Email;
 
 namespace SmartBiodiversityUtn.Services
 {
     public class EmailService : IEmailService
     {
+        private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
 
-        public EmailService(IConfiguration configuration)
+        public EmailService(HttpClient httpClient, IConfiguration configuration)
         {
+            _httpClient = httpClient;
             _configuration = configuration;
         }
 
         public async Task SendEmailAsync(EmailDto request)
         {
-            // ====== TRAZAS DE DIAGNÓSTICO ======
             var swTotal = Stopwatch.StartNew();
-            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} EmailService.SendEmailAsync INICIO to={request.To}");
-            // ====================================
+            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} Resend.SendAsync INICIO to={request.To}");
 
-            var email = new MimeMessage();
-            email.From.Add(MailboxAddress.Parse(_configuration["EmailUsername"]));
-            email.To.Add(MailboxAddress.Parse(request.To));
-            email.Subject = request.Subject;
+            // En Render la variable de entorno se llama ResendApiKey
+            var apiKey = _configuration["ResendApiKey"]
+                         ?? throw new InvalidOperationException("Falta configurar ResendApiKey.");
+            var from = _configuration["ResendFrom"]
+                       ?? "Smart Biodiversity <onboarding@resend.dev>";
 
-            var builder = new BodyBuilder
+            // Resend usa HTTPS (puerto 443) → NO lo bloquea Render ✅
+            using var httpRequest = new HttpRequestMessage(
+                HttpMethod.Post, "https://api.resend.com/emails");
+
+            httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+
+            var payload = new
             {
-                HtmlBody = request.Body
+                from,
+                to = new[] { request.To },
+                subject = request.Subject,
+                html = request.Body
             };
-            email.Body = builder.ToMessageBody();
 
-            var host = _configuration["EmailHost"];
-            var user = _configuration["EmailUsername"];
-            var pass = _configuration["EmailPassword"];
+            httpRequest.Content = new StringContent(
+                JsonSerializer.Serialize(payload),
+                Encoding.UTF8,
+                "application/json");
 
-            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} Config leída host={host} user={user} passLen={(pass?.Length ?? 0)}");
-
-            using var smtp = new SmtpClient();
-
-            // ✅ Agregar timeout
-            smtp.Timeout = 10000; // 10 segundos
-
-            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} >>> smtp.ConnectAsync({host}, 587, StartTls) ...");
             var sw = Stopwatch.StartNew();
-            try
-            {
-                // ✅ Cambiar a async
-                await smtp.ConnectAsync(host, 587, SecureSocketOptions.StartTls);
-                sw.Stop();
-                Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} <<< smtp.ConnectAsync OK          {sw.ElapsedMilliseconds} ms");
-            }
-            catch (Exception ex)
-            {
-                sw.Stop();
-                Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} <<< smtp.ConnectAsync FALLÓ       {sw.ElapsedMilliseconds} ms");
-                Console.WriteLine($"[EMAIL ]   Tipo   : {ex.GetType().FullName}");
-                Console.WriteLine($"[EMAIL ]   Mensaje: {ex.Message}");
-                if (ex.InnerException != null)
-                    Console.WriteLine($"[EMAIL ]   Inner  : {ex.InnerException.Message}");
-                throw;
-            }
-
-            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} >>> smtp.AuthenticateAsync(user) ...");
-            sw.Restart();
-            try
-            {
-                // ✅ Cambiar a async
-                await smtp.AuthenticateAsync(user, pass);
-                sw.Stop();
-                Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} <<< smtp.AuthenticateAsync OK     {sw.ElapsedMilliseconds} ms");
-            }
-            catch (Exception ex)
-            {
-                sw.Stop();
-                Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} <<< smtp.AuthenticateAsync FALLÓ  {sw.ElapsedMilliseconds} ms");
-                Console.WriteLine($"[EMAIL ]   Tipo   : {ex.GetType().FullName}");
-                Console.WriteLine($"[EMAIL ]   Mensaje: {ex.Message}");
-                if (ex.InnerException != null)
-                    Console.WriteLine($"[EMAIL ]   Inner  : {ex.InnerException.Message}");
-                throw;
-            }
-
-            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} >>> smtp.SendAsync(email) ...");
-            sw.Restart();
-            try
-            {
-                // ✅ Cambiar a async
-                await smtp.SendAsync(email);
-                sw.Stop();
-                Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} <<< smtp.SendAsync OK             {sw.ElapsedMilliseconds} ms");
-            }
-            catch (Exception ex)
-            {
-                sw.Stop();
-                Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} <<< smtp.SendAsync FALLÓ          {sw.ElapsedMilliseconds} ms");
-                Console.WriteLine($"[EMAIL ]   Tipo   : {ex.GetType().FullName}");
-                Console.WriteLine($"[EMAIL ]   Mensaje: {ex.Message}");
-                if (ex.InnerException != null)
-                    Console.WriteLine($"[EMAIL ]   Inner  : {ex.InnerException.Message}");
-                throw;
-            }
-
-            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} >>> smtp.DisconnectAsync(true) ...");
-            sw.Restart();
-            // ✅ Cambiar a async
-            await smtp.DisconnectAsync(true);
+            var response = await _httpClient.SendAsync(httpRequest);
             sw.Stop();
-            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} <<< smtp.DisconnectAsync OK       {sw.ElapsedMilliseconds} ms");
+
+            var responseBody = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} Resend FALLÓ {(int)response.StatusCode} {sw.ElapsedMilliseconds} ms -> {responseBody}");
+                throw new InvalidOperationException(
+                    $"Error enviando correo con Resend ({(int)response.StatusCode}): {responseBody}");
+            }
 
             swTotal.Stop();
-            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} EmailService.SendEmailAsync FIN  total={swTotal.ElapsedMilliseconds} ms");
-            Console.WriteLine(new string('-', 80));
+            Console.WriteLine($"[EMAIL ] {DateTime.Now:HH:mm:ss.fff} Resend OK {sw.ElapsedMilliseconds} ms  total={swTotal.ElapsedMilliseconds} ms");
         }
     }
 }
