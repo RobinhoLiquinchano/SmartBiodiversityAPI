@@ -63,10 +63,10 @@ builder.Services.AddScoped<IMultimediaService, MultimediaService>();
 builder.Services.AddScoped<IAporteService, AporteService>();
 builder.Services.AddScoped<IAvisoService, AvisoService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
-// === BITÁCORA ===
 builder.Services.AddScoped<IBitacoraService, BitacoraService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
-// ====================== JWT AUTHENTICATION ======================
+// JWT AUTHENTICATION 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -83,15 +83,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// ====================== CORS ======================
-// ====================== CORS ======================
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()           // Permite cualquier origen
-              .AllowAnyMethod()            // GET, POST, PUT, DELETE, etc
-              .AllowAnyHeader();           // Todos los headers
+        policy.AllowAnyOrigin()           
+              .AllowAnyMethod()            
+              .AllowAnyHeader();          
     });
 });
 
@@ -99,11 +98,9 @@ var app = builder.Build();
 
 app.UseCors("AllowAll");
 
-// Configure the HTTP request pipeline.
 app.MapOpenApi();
 app.MapScalarApiReference(options =>
 {
-    // Esto fuerza a la interfaz de Scalar a usar tu URL segura de Render
     options.Servers = new[]
     {
         new Scalar.AspNetCore.ScalarServer("https://smartbiodiversityapi.onrender.com")
@@ -111,7 +108,7 @@ app.MapScalarApiReference(options =>
 });
 app.MapGet("/", () => Results.Redirect("/scalar/v1")).ExcludeFromDescription();
 
-// ====================== SEMILLA DE ROLES Y USUARIO ADMIN ======================
+// SEMILLA DE ROLES Y USUARIO ADMIN 
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -121,7 +118,6 @@ using (var scope = app.Services.CreateScope())
         var passwordHasher = new PasswordHasher<Usuario>();
 
 
-        // 👇 AÑADE ESTA LÍNEA PARA CREAR LAS TABLAS EN RENDER 👇
         context.Database.Migrate();
 
         // === SEED ROLES ===
