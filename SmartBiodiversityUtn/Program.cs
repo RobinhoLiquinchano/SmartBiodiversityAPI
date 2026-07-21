@@ -171,9 +171,9 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "Error al crear los roles o el usuario administrador por defecto.");
     }
 }
-app.UseAuthentication();         // Si tienes autenticación
+app.UseAuthentication();     
 
-app.UseAuthorization();          // Si tienes autorización
+app.UseAuthorization(); 
 
 app.MapControllers();
 

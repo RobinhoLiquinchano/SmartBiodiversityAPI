@@ -11,9 +11,7 @@ namespace SmartBiodiversityUtn.Controllers
     [ApiController]
     public class AuthController(IAuthServices authServices) : ControllerBase
     {
-        // ============================================================
-        // 1) SOLICITUD DE REGISTRO: genera código, lo guarda y envía email.
-        // ============================================================
+
         [HttpPost("send-verification-code")]
         [AllowAnonymous]
         public async Task<IActionResult> SendVerificationCode(SendVerificationCodeRequest request)
@@ -35,14 +33,10 @@ namespace SmartBiodiversityUtn.Controllers
             return Ok(new
             {
                 message = "Código de verificación enviado correctamente al correo.",
-                expiracionMinutos = 15
+                expiracionMinutos = 1
             });
         }
 
-        // ============================================================
-        // 2) VERIFICACIÓN DEL CÓDIGO (opcional, útil para UIs de doble paso).
-        //    NO crea el usuario todavía.
-        // ============================================================
         [HttpPost("verify-code")]
         [AllowAnonymous]
         public async Task<IActionResult> VerifyCode(VerifyCodeRequest request)
@@ -68,10 +62,6 @@ namespace SmartBiodiversityUtn.Controllers
             });
         }
 
-        // ============================================================
-        // 3) REGISTRO DEFINITIVO: valida el código y, si es correcto,
-        //    crea el Usuario en la BD.
-        // ============================================================
         [HttpPost("register")]
         [AllowAnonymous]
         public async Task<ActionResult<Usuario>> Register(UserDto request)
@@ -103,6 +93,7 @@ namespace SmartBiodiversityUtn.Controllers
         }
 
         [HttpPost("login")]
+        [AllowAnonymous]
         public async Task<ActionResult<TokenResponseDto>> Login(LoginRequest request)
         {
             var result = await authServices.LoginAsync(request);
@@ -114,6 +105,7 @@ namespace SmartBiodiversityUtn.Controllers
         }
 
         [HttpPost("refresh-token")]
+        [AllowAnonymous]
         public async Task<ActionResult<TokenResponseDto>> RefreshToken(RefreshTokenRequestDto request)
         {
             var result = await authServices.RefreshTokensAsync(request);
@@ -127,6 +119,7 @@ namespace SmartBiodiversityUtn.Controllers
         }
 
         [HttpPost("forgot-password")]
+        [AllowAnonymous]
         public async Task<IActionResult> ForgotPassword(PasswordResetRequest request)
         {
             var token = await authServices.GeneratePasswordResetTokenAsync(request.Email);
@@ -137,6 +130,7 @@ namespace SmartBiodiversityUtn.Controllers
         }
 
         [HttpPost("reset-password")]
+        [AllowAnonymous]
         public async Task<IActionResult> ResetPassword(ResetPasswordDto request)
         {
             var success = await authServices.ResetPasswordAsync(request.Token, request.NewPassword);
