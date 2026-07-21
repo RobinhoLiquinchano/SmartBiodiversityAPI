@@ -6,9 +6,7 @@ using System.Security.Claims;
 
 namespace SmartBiodiversityUtn.Controllers;
 
-/// <summary>
-/// Controlador para la gestión del perfil de usuario y administración de usuarios.
-/// </summary>
+
 [Route("api/[controller]")]
 [ApiController]
 [Authorize]
@@ -40,7 +38,7 @@ public class UsersController(IUserService userService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateMyProfile([FromBody] UpdateProfileRequest request)
+    public async Task<IActionResult> UpdateMyProfile(UpdateProfileRequest request)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
