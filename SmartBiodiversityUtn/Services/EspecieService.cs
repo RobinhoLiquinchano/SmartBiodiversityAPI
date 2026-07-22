@@ -40,7 +40,8 @@ namespace SmartBiodiversityUtn.Services
             await BitacoraHelper.RegistrarAccionAsync(_bitacoraService, idUsuario, "CREAR_ESPECIE",
                 $"Creó la especie: {especie.NombreComun}");
 
-            return MapToResponse(newEspecie, categoria?.NombreCat ?? "Sin categoría");
+            // Al crear aún no hay imagen
+            return MapToResponse(newEspecie, categoria?.NombreCat ?? "Sin categoría", null);
         }
 
         public async Task<bool> UpdateEspecieAsync(string id, UpdateEspecieRequest especie, string idUsuario)
@@ -96,18 +97,21 @@ namespace SmartBiodiversityUtn.Services
             => await DeleteEspecieAsync(id, "SYSTEM");
 
         // ==================== Métodos de lectura ====================
-        // NOTA: primero se materializan las entidades (.ToListAsync / FirstOrDefault)
-        // y LUEGO se mapea en memoria. Así evitamos:
-        //   1) El error de EF10 "client projection ... instance method MapToResponse".
-        //   2) El error de traducción de ToEcuadorTime() (no se puede pasar a SQL).
+        // Traen la URL de la imagen (la más reciente) de cada especie en la misma consulta,
+        // sin N+1: una sola lectura de Multimedia agrupada en memoria.
         public async Task<IEnumerable<EspecieResponse>> GetAllEspeciesAsync()
         {
             var especies = await _context.Especies
                 .Include(e => e.Categoria)
                 .ToListAsync();
 
+            var dictImagenes = await MapaImagenesPorEspecieAsync();
+
             return especies
-                .Select(e => MapToResponse(e, e.Categoria?.NombreCat ?? "Sin categoría"))
+                .Select(e => MapToResponse(
+                    e,
+                    e.Categoria?.NombreCat ?? "Sin categoría",
+                    dictImagenes.TryGetValue(e.IdEspecies, out var url) ? url : null))
                 .ToList();
         }
 
@@ -117,13 +121,35 @@ namespace SmartBiodiversityUtn.Services
                 .Include(e => e.Categoria)
                 .FirstOrDefaultAsync(e => e.IdEspecies == id);
 
-            return especie == null
-                ? null
-                : MapToResponse(especie, especie.Categoria?.NombreCat ?? "Sin categoría");
+            if (especie == null) return null;
+
+            var url = await _context.Multimedia
+                .Where(m => m.IdEspeciesMul == id && !string.IsNullOrEmpty(m.RutaArchivoMul))
+                .OrderByDescending(m => m.FechaMul)
+                .Select(m => m.RutaArchivoMul)
+                .FirstOrDefaultAsync();
+
+            return MapToResponse(especie, especie.Categoria?.NombreCat ?? "Sin categoría", url);
         }
 
-        // static: no usa estado de la instancia → EF ya no lo considera "constante capturada"
-        private static EspecieResponse MapToResponse(Especie especie, string nombreCategoria)
+        /// <summary>
+        /// IdEspecie -> URL de la imagen más reciente (solo las que tengan URL).
+        /// </summary>
+        private async Task<Dictionary<string, string>> MapaImagenesPorEspecieAsync()
+        {
+            var multimedias = await _context.Multimedia
+                .Where(m => !string.IsNullOrEmpty(m.RutaArchivoMul))
+                .ToListAsync();
+
+            return multimedias
+                .GroupBy(m => m.IdEspeciesMul)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderByDescending(m => m.FechaMul).First().RutaArchivoMul);
+        }
+
+        // static: no captura estado de la instancia (EF10 friendly)
+        private static EspecieResponse MapToResponse(Especie especie, string nombreCategoria, string? imagenUrl)
         {
             return new EspecieResponse
             {
@@ -134,7 +160,8 @@ namespace SmartBiodiversityUtn.Services
                 Habitat = especie.HabitatEsp,
                 EstadoEsp = especie.EstadoEsp,
                 NombreCategoria = nombreCategoria,
-                FechaRegistroEsp = especie.FechaRegistroEsp.ToEcuadorTime()
+                FechaRegistroEsp = especie.FechaRegistroEsp.ToEcuadorTime(),
+                ImagenUrl = imagenUrl
             };
         }
     }
