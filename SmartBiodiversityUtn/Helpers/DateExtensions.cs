@@ -4,19 +4,13 @@ namespace SmartBiodiversityUtn.Helpers
 {
     public static class DateExtensions
     {
-        /// <summary>
-        /// Convierte una fecha UTC a la hora local de Ecuador (America/Guayaquil, UTC-5).
-        /// </summary>
-        /// <param name="utcDate">Fecha en UTC (ej. DateTime.UtcNow o un valor leído de la BD).</param>
-        /// <returns>La misma fecha convertida a hora de Ecuador.</returns>
+      
         public static DateTime ToEcuadorTime(this DateTime utcDate)
         {
             try
             {
-                // "America/Guayaquil" es el identificador IANA para Ecuador, compatible con Linux/Docker
                 var ecuadorTimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Guayaquil");
 
-                // Aseguramos que .NET sepa que la fecha original es UTC antes de convertirla
                 if (utcDate.Kind == DateTimeKind.Unspecified)
                 {
                     utcDate = DateTime.SpecifyKind(utcDate, DateTimeKind.Utc);
@@ -26,7 +20,6 @@ namespace SmartBiodiversityUtn.Helpers
             }
             catch (TimeZoneNotFoundException)
             {
-                // Respaldo manual (UTC-5) en caso de que el contenedor de Docker no tenga las zonas horarias instaladas
                 return utcDate.AddHours(-5);
             }
         }
@@ -36,6 +29,23 @@ namespace SmartBiodiversityUtn.Helpers
             if (!utcDate.HasValue) return null;
 
             return utcDate.Value.ToEcuadorTime();
+        }
+
+        public static DateTime ToUtc(this DateTime localDate)
+        {
+            if (localDate.Kind == DateTimeKind.Utc)
+                return localDate;
+
+            // Si es Unspecified, asumimos que viene en hora de Ecuador
+            var ecuadorTimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Guayaquil");
+            var unspecified = DateTime.SpecifyKind(localDate, DateTimeKind.Unspecified);
+            return TimeZoneInfo.ConvertTimeToUtc(unspecified, ecuadorTimeZone);
+        }
+
+        public static DateTime? ToUtc(this DateTime? localDate)
+        {
+            if (!localDate.HasValue) return null;
+            return localDate.Value.ToUtc();
         }
     }
 }

@@ -121,5 +121,24 @@ namespace SmartBiodiversityUtnMVC.Services
             var response = await _httpClient.PostAsync(endpoint, formData);
             return response.IsSuccessStatusCode;
         }
+
+        // ====== Métodos "raw": devuelven la respuesta completa para leer el error real ======
+        public async Task<HttpResponseMessage> PostJsonRawAsync<TRequest>(string endpoint, TRequest data)
+        {
+            ConfigurarToken();
+            return await _httpClient.PostAsJsonAsync(endpoint, data);
+        }
+
+        public async Task<HttpResponseMessage> PutJsonRawAsync<TRequest>(string endpoint, TRequest data)
+        {
+            ConfigurarToken();
+            return await _httpClient.PutAsJsonAsync(endpoint, data);
+        }
+
+        public async Task<HttpResponseMessage> DeleteRawAsync(string endpoint)
+        {
+            ConfigurarToken();
+            return await _httpClient.DeleteAsync(endpoint);
+        }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc;
 using SmartBiodiversityUtnMVC.Services;
 using SmartBiodiversityUtnModels.DTOs;                 // CreateEspecieRequest
@@ -71,9 +72,12 @@ namespace SmartBiodiversityUtnMVC.Controllers
         {
             if (string.IsNullOrWhiteSpace(request?.NombreComun) ||
                 string.IsNullOrWhiteSpace(request?.NombreCientifico) ||
-                string.IsNullOrWhiteSpace(request?.CategoriaId))
+                string.IsNullOrWhiteSpace(request?.Habitat) ||
+                string.IsNullOrWhiteSpace(request?.Descripcion) ||
+                string.IsNullOrWhiteSpace(request?.CategoriaId) ||
+                archivo == null || archivo.Length == 0)
             {
-                TempData["IndexError"] = "Nombre común, nombre científico y categoría (Flora/Fauna) son obligatorios.";
+                TempData["IndexError"] = "Todos los campos son obligatorios, incluida la imagen y la categoría.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -93,14 +97,16 @@ namespace SmartBiodiversityUtnMVC.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var conImagen = archivo != null && archivo.Length > 0;
+            // La imagen es obligatoria: si la subida falla, deshacemos el registro (no quedan especies sin foto).
             var (imgOk, imgErr) = await TrySubirImagen(creado.IdEspecie, archivo);
+            if (!imgOk)
+            {
+                await _apiClient.DeleteAsync($"api/Especies/{creado.IdEspecie}");
+                TempData["IndexError"] = imgErr ?? "La imagen es obligatoria y no se pudo subir.";
+                return RedirectToAction(nameof(Index));
+            }
 
-            TempData["IndexOk"] = imgOk
-                ? $"Especie '{creado.NombreComun}' registrada" + (conImagen ? " con imagen" : "") + "."
-                : $"Especie '{creado.NombreComun}' registrada, pero la imagen no se subió.";
-            if (!imgOk) TempData["IndexError"] = imgErr;
-
+            TempData["IndexOk"] = $"Especie '{creado.NombreComun}' registrada con imagen.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -169,9 +175,17 @@ namespace SmartBiodiversityUtnMVC.Controllers
                 return RedirectToAction(nameof(Avisos));
             }
 
-            var creado = await _apiClient.PostAsync<CreateAvisoRequest, AvisoResponse>("api/Avisos", request);
-            if (creado == null) TempData["AvisoError"] = "No se pudo crear el aviso. Verifica tu sesión de Administrador.";
-            else TempData["AvisoOk"] = $"Aviso “{creado.TituloAvi}” publicado.";
+            var resp = await _apiClient.PostJsonRawAsync("api/Avisos", request);
+            if (resp.IsSuccessStatusCode)
+            {
+                var creado = await resp.Content.ReadFromJsonAsync<AvisoResponse>();
+                TempData["AvisoOk"] = $"Aviso “{creado?.TituloAvi ?? request.TituloAvi}” publicado.";
+            }
+            else
+            {
+                var body = await resp.Content.ReadAsStringAsync();
+                TempData["AvisoError"] = $"No se pudo crear el aviso (HTTP {(int)resp.StatusCode}). Detalle: {ResumenError(body)}";
+            }
 
             return RedirectToAction(nameof(Avisos));
         }
@@ -186,9 +200,9 @@ namespace SmartBiodiversityUtnMVC.Controllers
                 return RedirectToAction(nameof(Avisos));
             }
 
-            var ok = await _apiClient.PutAsync<UpdateAvisoRequest>($"api/Avisos/{id}", request);
-            if (ok) TempData["AvisoOk"] = "Aviso actualizado.";
-            else TempData["AvisoError"] = "No se pudo actualizar el aviso.";
+            var resp = await _apiClient.PutJsonRawAsync($"api/Avisos/{id}", request);
+            if (resp.IsSuccessStatusCode) TempData["AvisoOk"] = "Aviso actualizado.";
+            else TempData["AvisoError"] = $"No se pudo actualizar el aviso (HTTP {(int)resp.StatusCode}). Detalle: {ResumenError(await resp.Content.ReadAsStringAsync())}";
 
             return RedirectToAction(nameof(Avisos));
         }
@@ -203,11 +217,9 @@ namespace SmartBiodiversityUtnMVC.Controllers
                 return RedirectToAction(nameof(Avisos));
             }
 
-            var ok = await _apiClient.PutAsync<UpdateAvisoRequest>(
-                $"api/Avisos/{id}", new UpdateAvisoRequest { ActivoAvi = activo });
-
-            if (ok) TempData["AvisoOk"] = activo ? "Aviso activado." : "Aviso desactivado.";
-            else TempData["AvisoError"] = "No se pudo cambiar el estado del aviso.";
+            var resp = await _apiClient.PutJsonRawAsync($"api/Avisos/{id}", new UpdateAvisoRequest { ActivoAvi = activo });
+            if (resp.IsSuccessStatusCode) TempData["AvisoOk"] = activo ? "Aviso activado." : "Aviso desactivado.";
+            else TempData["AvisoError"] = $"No se pudo cambiar el estado (HTTP {(int)resp.StatusCode}). Detalle: {ResumenError(await resp.Content.ReadAsStringAsync())}";
 
             return RedirectToAction(nameof(Avisos));
         }
@@ -222,11 +234,31 @@ namespace SmartBiodiversityUtnMVC.Controllers
                 return RedirectToAction(nameof(Avisos));
             }
 
-            var ok = await _apiClient.DeleteAsync($"api/Avisos/{id}");
-            if (ok) TempData["AvisoOk"] = "Aviso eliminado.";
-            else TempData["AvisoError"] = "No se pudo eliminar el aviso.";
+            var resp = await _apiClient.DeleteRawAsync($"api/Avisos/{id}");
+            if (resp.IsSuccessStatusCode) TempData["AvisoOk"] = "Aviso eliminado.";
+            else TempData["AvisoError"] = $"No se pudo eliminar el aviso (HTTP {(int)resp.StatusCode}). Detalle: {ResumenError(await resp.Content.ReadAsStringAsync())}";
 
             return RedirectToAction(nameof(Avisos));
+        }
+
+        private static string ResumenError(string body)
+        {
+            if (string.IsNullOrWhiteSpace(body)) return "(sin detalle)";
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(body);
+                if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object)
+                {
+                    foreach (var p in new[] { "message", "Message", "title", "Title" })
+                        if (doc.RootElement.TryGetProperty(p, out var v))
+                        {
+                            var s = v.ToString();
+                            return s.Length > 240 ? s.Substring(0, 240) + "…" : s;
+                        }
+                }
+            }
+            catch { }
+            return body.Length > 240 ? body.Substring(0, 240) + "…" : body;
         }
 
         // =====================================================================
@@ -293,9 +325,12 @@ namespace SmartBiodiversityUtnMVC.Controllers
         public async Task<IActionResult> FloraCreate(CreateEspecieRequest request, IFormFile? archivo)
         {
             if (string.IsNullOrWhiteSpace(request?.NombreComun) ||
-                string.IsNullOrWhiteSpace(request?.NombreCientifico))
+                string.IsNullOrWhiteSpace(request?.NombreCientifico) ||
+                string.IsNullOrWhiteSpace(request?.Habitat) ||
+                string.IsNullOrWhiteSpace(request?.Descripcion) ||
+                archivo == null || archivo.Length == 0)
             {
-                TempData["FloraError"] = "Nombre común y nombre científico son obligatorios.";
+                TempData["FloraError"] = "Todos los campos son obligatorios, incluida la imagen.";
                 return RedirectToAction(nameof(Flora));
             }
 
@@ -315,15 +350,16 @@ namespace SmartBiodiversityUtnMVC.Controllers
                 return RedirectToAction(nameof(Flora));
             }
 
-            var conImagen = archivo != null && archivo.Length > 0;
+            // La imagen es obligatoria: si la subida falla, deshacemos el registro (no quedan especies sin foto).
             var (imgOk, imgErr) = await TrySubirImagen(creado.IdEspecie, archivo);
+            if (!imgOk)
+            {
+                await _apiClient.DeleteAsync($"api/Especies/{creado.IdEspecie}");
+                TempData["FloraError"] = imgErr ?? "La imagen es obligatoria y no se pudo subir.";
+                return RedirectToAction(nameof(Flora));
+            }
 
-            TempData["FloraOk"] = imgOk
-                ? $"Especie '{creado.NombreComun}' registrada" + (conImagen ? " con imagen" : "") + "."
-                : $"Especie '{creado.NombreComun}' registrada, pero la imagen no se subió.";
-
-            if (!imgOk) TempData["FloraError"] = imgErr;
-
+            TempData["FloraOk"] = $"Especie '{creado.NombreComun}' registrada con imagen.";
             return RedirectToAction(nameof(Flora));
         }
 
@@ -391,9 +427,12 @@ namespace SmartBiodiversityUtnMVC.Controllers
         public async Task<IActionResult> FaunaCreate(CreateEspecieRequest request, IFormFile? archivo)
         {
             if (string.IsNullOrWhiteSpace(request?.NombreComun) ||
-                string.IsNullOrWhiteSpace(request?.NombreCientifico))
+                string.IsNullOrWhiteSpace(request?.NombreCientifico) ||
+                string.IsNullOrWhiteSpace(request?.Habitat) ||
+                string.IsNullOrWhiteSpace(request?.Descripcion) ||
+                archivo == null || archivo.Length == 0)
             {
-                TempData["FaunaError"] = "Nombre común y nombre científico son obligatorios.";
+                TempData["FaunaError"] = "Todos los campos son obligatorios, incluida la imagen.";
                 return RedirectToAction(nameof(Fauna));
             }
 
@@ -409,19 +448,20 @@ namespace SmartBiodiversityUtnMVC.Controllers
             var creado = await _apiClient.PostAsync<CreateEspecieRequest, EspecieResponse>("api/Especies", request);
             if (creado == null)
             {
-                TempData["FaunaError"] = "No se pudo registrar la especie. Verifica que tu sesión sea de Administrador.";
+                TempData["FaunaError"] = "No se pudo registrar la especie. Verifica tu sesión de Administrador.";
                 return RedirectToAction(nameof(Fauna));
             }
 
-            var conImagen = archivo != null && archivo.Length > 0;
+            // La imagen es obligatoria: si la subida falla, deshacemos el registro (no quedan especies sin foto).
             var (imgOk, imgErr) = await TrySubirImagen(creado.IdEspecie, archivo);
+            if (!imgOk)
+            {
+                await _apiClient.DeleteAsync($"api/Especies/{creado.IdEspecie}");
+                TempData["FaunaError"] = imgErr ?? "La imagen es obligatoria y no se pudo subir.";
+                return RedirectToAction(nameof(Fauna));
+            }
 
-            TempData["FaunaOk"] = imgOk
-                ? $"Especie '{creado.NombreComun}' registrada" + (conImagen ? " con imagen" : "") + "."
-                : $"Especie '{creado.NombreComun}' registrada, pero la imagen no se subió.";
-
-            if (!imgOk) TempData["FaunaError"] = imgErr;
-
+            TempData["FaunaOk"] = $"Especie '{creado.NombreComun}' registrada con imagen.";
             return RedirectToAction(nameof(Fauna));
         }
 

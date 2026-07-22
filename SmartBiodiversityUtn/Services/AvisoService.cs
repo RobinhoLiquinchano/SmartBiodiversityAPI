@@ -31,7 +31,7 @@ namespace SmartBiodiversityUtn.Services
                 CategoriaAvi = request.CategoriaAvi,
                 ActivoAvi = true,
                 FechaIniAvi = DateTime.UtcNow,
-                FechaFinAvi = request.FechaFinAvi
+                FechaFinAvi = request.FechaFinAvi.ToUtc()
             };
 
             _context.Avisos.Add(aviso);
@@ -97,8 +97,8 @@ namespace SmartBiodiversityUtn.Services
             if (request.MensajeAvi != null) aviso.MensajeAvi = request.MensajeAvi;
             if (request.CategoriaAvi != null) aviso.CategoriaAvi = request.CategoriaAvi;
             if (request.ActivoAvi.HasValue) aviso.ActivoAvi = request.ActivoAvi.Value;
-            if (request.FechaIniAvi.HasValue) aviso.FechaIniAvi = request.FechaIniAvi.Value;
-            if (request.FechaFinAvi.HasValue) aviso.FechaFinAvi = request.FechaFinAvi;
+            if (request.FechaIniAvi.HasValue) aviso.FechaIniAvi = request.FechaIniAvi.Value.ToUtc();
+            if (request.FechaFinAvi.HasValue) aviso.FechaFinAvi = request.FechaFinAvi.ToUtc();
 
             var result = await _context.SaveChangesAsync() > 0;
 
