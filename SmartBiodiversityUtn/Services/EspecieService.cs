@@ -96,24 +96,34 @@ namespace SmartBiodiversityUtn.Services
             => await DeleteEspecieAsync(id, "SYSTEM");
 
         // ==================== Métodos de lectura ====================
+        // NOTA: primero se materializan las entidades (.ToListAsync / FirstOrDefault)
+        // y LUEGO se mapea en memoria. Así evitamos:
+        //   1) El error de EF10 "client projection ... instance method MapToResponse".
+        //   2) El error de traducción de ToEcuadorTime() (no se puede pasar a SQL).
         public async Task<IEnumerable<EspecieResponse>> GetAllEspeciesAsync()
         {
-            return await _context.Especies
-                .Select(e => MapToResponse(e, e.Categoria.NombreCat))
+            var especies = await _context.Especies
+                .Include(e => e.Categoria)
                 .ToListAsync();
+
+            return especies
+                .Select(e => MapToResponse(e, e.Categoria?.NombreCat ?? "Sin categoría"))
+                .ToList();
         }
 
         public async Task<EspecieResponse?> GetEspecieByIdAsync(string id)
         {
             var especie = await _context.Especies
-                .Where(e => e.IdEspecies == id)
-                .Select(e => MapToResponse(e, e.Categoria.NombreCat))
-                .FirstOrDefaultAsync();
+                .Include(e => e.Categoria)
+                .FirstOrDefaultAsync(e => e.IdEspecies == id);
 
-            return especie;
+            return especie == null
+                ? null
+                : MapToResponse(especie, especie.Categoria?.NombreCat ?? "Sin categoría");
         }
 
-        private EspecieResponse MapToResponse(Especie especie, string nombreCategoria)
+        // static: no usa estado de la instancia → EF ya no lo considera "constante capturada"
+        private static EspecieResponse MapToResponse(Especie especie, string nombreCategoria)
         {
             return new EspecieResponse
             {
