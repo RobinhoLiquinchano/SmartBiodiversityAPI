@@ -5,6 +5,7 @@ using SmartBiodiversityUtnModels.DTOs;                 // CreateEspecieRequest
 using SmartBiodiversityUtnModels.DTOs.Account;         // UserListResponse
 using SmartBiodiversityUtnModels.DTOs.Categoria;       // CategoriaResponse
 using SmartBiodiversityUtnModels.DTOs.Especie;         // EspecieResponse, UpdateEspecieRequest
+using SmartBiodiversityUtnModels.DTOs.Aviso;           // AvisoResponse, Create/UpdateAvisoRequest
 
 namespace SmartBiodiversityUtnMVC.Controllers
 {
@@ -144,6 +145,88 @@ namespace SmartBiodiversityUtnMVC.Controllers
             else TempData["IndexError"] = "No se pudo eliminar la especie. Verifica tu sesión de Administrador.";
 
             return RedirectToAction(nameof(Index));
+        }
+
+        // =====================================================================
+        //  AVISOS (los que se muestran en la app móvil)
+        // =====================================================================
+        [HttpGet]
+        public async Task<IActionResult> Avisos()
+        {
+            var avisos = await _apiClient.GetAsync<IEnumerable<AvisoResponse>>("api/Avisos")
+                           ?? Enumerable.Empty<AvisoResponse>();
+
+            return View(avisos.OrderByDescending(a => a.FechaIniAvi).ToList());
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AvisoCrear(CreateAvisoRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request?.TituloAvi) || string.IsNullOrWhiteSpace(request?.MensajeAvi))
+            {
+                TempData["AvisoError"] = "El título y el mensaje son obligatorios.";
+                return RedirectToAction(nameof(Avisos));
+            }
+
+            var creado = await _apiClient.PostAsync<CreateAvisoRequest, AvisoResponse>("api/Avisos", request);
+            if (creado == null) TempData["AvisoError"] = "No se pudo crear el aviso. Verifica tu sesión de Administrador.";
+            else TempData["AvisoOk"] = $"Aviso “{creado.TituloAvi}” publicado.";
+
+            return RedirectToAction(nameof(Avisos));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AvisoEditar(string id, UpdateAvisoRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                TempData["AvisoError"] = "ID inválido.";
+                return RedirectToAction(nameof(Avisos));
+            }
+
+            var ok = await _apiClient.PutAsync<UpdateAvisoRequest>($"api/Avisos/{id}", request);
+            if (ok) TempData["AvisoOk"] = "Aviso actualizado.";
+            else TempData["AvisoError"] = "No se pudo actualizar el aviso.";
+
+            return RedirectToAction(nameof(Avisos));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AvisoToggle(string id, bool activo)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                TempData["AvisoError"] = "ID inválido.";
+                return RedirectToAction(nameof(Avisos));
+            }
+
+            var ok = await _apiClient.PutAsync<UpdateAvisoRequest>(
+                $"api/Avisos/{id}", new UpdateAvisoRequest { ActivoAvi = activo });
+
+            if (ok) TempData["AvisoOk"] = activo ? "Aviso activado." : "Aviso desactivado.";
+            else TempData["AvisoError"] = "No se pudo cambiar el estado del aviso.";
+
+            return RedirectToAction(nameof(Avisos));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AvisoEliminar(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                TempData["AvisoError"] = "ID inválido.";
+                return RedirectToAction(nameof(Avisos));
+            }
+
+            var ok = await _apiClient.DeleteAsync($"api/Avisos/{id}");
+            if (ok) TempData["AvisoOk"] = "Aviso eliminado.";
+            else TempData["AvisoError"] = "No se pudo eliminar el aviso.";
+
+            return RedirectToAction(nameof(Avisos));
         }
 
         // =====================================================================

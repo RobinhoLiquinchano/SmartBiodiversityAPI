@@ -32,6 +32,16 @@ namespace SmartBiodiversityUtn.Controllers
 
                 return CreatedAtAction(nameof(GetAporteById), new { id = createdAporte.IdAporte }, createdAporte);
             }
+            catch (LimiteAportesExcedidoException lex)
+            {
+                // 429 Too Many Requests: el usuario superó su cuota diaria
+                return StatusCode(429, new
+                {
+                    message = lex.Message,
+                    limitePorDia = lex.Limite,
+                    reintentoEn = "24h"
+                });
+            }
             catch (Exception ex)
             {
                 return BadRequest(new { message = ex.Message });

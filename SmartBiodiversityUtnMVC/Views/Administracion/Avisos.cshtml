@@ -1,0 +1,472 @@
+﻿@using SmartBiodiversityUtnModels.DTOs.Aviso
+@model IEnumerable<SmartBiodiversityUtnModels.DTOs.Aviso.AvisoResponse>
+@{
+    Layout = null;
+    ViewData["Title"] = "Avisos";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Avisos - Smart Biodiversity</title>
+    <style>
+            body {
+                margin: 0;
+                font-family: Arial, Helvetica, sans-serif;
+                background: #f4f6fa;
+                color: #111827;
+            }
+
+            .topbar {
+                height: 64px;
+                padding: 0 24px;
+                background: #fff;
+                border-bottom: 1px solid #e5e7eb;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .topbar-brand {
+                font-weight: bold;
+                font-size: 18px;
+            }
+
+            .back-button {
+                background: #dbeafe;
+                color: #1d4ed8;
+                text-decoration: none;
+                border-radius: 10px;
+                padding: 9px 14px;
+                font-weight: bold;
+                font-size: 13px;
+            }
+
+            .content {
+                padding: 20px 22px;
+            }
+
+            .page-title h1 {
+                margin: 0;
+                font-size: 21px;
+            }
+
+            .page-title p {
+                color: #6b7280;
+                margin: 3px 0 16px;
+                font-size: 13px;
+            }
+
+            .sb-alert {
+                padding: 12px 16px;
+                border-radius: 10px;
+                margin-bottom: 14px;
+                font-weight: bold;
+                font-size: 13px;
+            }
+
+            .sb-ok {
+                background: #dcfce7;
+                color: #166534;
+                border: 1px solid #86efac;
+            }
+
+            .sb-err {
+                background: #fee2e2;
+                color: #991b1b;
+                border: 1px solid #fca5a5;
+            }
+
+            .panel {
+                background: #fff;
+                border-radius: 14px;
+                box-shadow: 0 8px 20px rgba(15,23,42,.07);
+                padding: 16px 18px;
+                margin-bottom: 18px;
+            }
+
+            .toolbar {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 4px;
+                flex-wrap: wrap;
+            }
+
+                .toolbar h2 {
+                    margin: 0;
+                    font-size: 15px;
+                }
+
+                .toolbar .hint {
+                    color: #6b7280;
+                    font-size: 12px;
+                }
+
+            .btn {
+                border: none;
+                cursor: pointer;
+                font: inherit;
+                font-weight: bold;
+                border-radius: 9px;
+                padding: 9px 14px;
+                font-size: 13px;
+            }
+
+            .btn-primary {
+                background: #22c55e;
+                color: #fff;
+            }
+
+                .btn-primary:hover {
+                    background: #16a34a;
+                }
+
+            .btn-edit {
+                background: #dbeafe;
+                color: #1d4ed8;
+                padding: 5px 9px;
+                font-size: 12px;
+            }
+
+            .btn-del {
+                background: #fee2e2;
+                color: #b91c1c;
+                padding: 5px 9px;
+                font-size: 12px;
+            }
+
+            .table-wrap {
+                overflow-x: auto;
+            }
+
+            table {
+                width: 100%;
+                min-width: 0;
+                border-collapse: collapse;
+            }
+
+            th, td {
+                text-align: left;
+                padding: 8px 10px;
+                border-bottom: 1px solid #e5e7eb;
+                font-size: 12.5px;
+                white-space: nowrap;
+                vertical-align: middle;
+            }
+
+            th {
+                font-size: 10.5px;
+                text-transform: uppercase;
+                letter-spacing: .4px;
+                color: #6b7280;
+                background: #f9fafb;
+            }
+
+            td:nth-child(1) {
+                max-width: 200px;
+            }
+
+            td:nth-child(2) {
+                max-width: 300px;
+            }
+
+            .clip {
+                display: block;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .sb-pill {
+                display: inline-block;
+                padding: 3px 9px;
+                border-radius: 999px;
+                font-size: 11px;
+                font-weight: bold;
+                border: none;
+                cursor: pointer;
+                font-family: inherit;
+            }
+
+            .sb-pill-ok {
+                background: #dcfce7;
+                color: #166534;
+            }
+
+            .sb-pill-off {
+                background: #e5e7eb;
+                color: #374151;
+            }
+
+            .sb-pill-cat {
+                background: #dbeafe;
+                color: #1d4ed8;
+                cursor: default;
+            }
+
+            .sb-modal {
+                position: fixed;
+                inset: 0;
+                background: rgba(15,23,42,.55);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+                padding: 16px;
+            }
+
+            .sb-modal-card {
+                background: #fff;
+                border-radius: 14px;
+                padding: 22px;
+                width: 100%;
+                max-width: 520px;
+                max-height: 90vh;
+                overflow-y: auto;
+                box-shadow: 0 20px 50px rgba(0,0,0,.3);
+            }
+
+                .sb-modal-card h2 {
+                    margin: 0 0 14px;
+                    font-size: 16px;
+                }
+
+            .sb-form {
+                display: flex;
+                flex-direction: column;
+                gap: 11px;
+            }
+
+                .sb-form label {
+                    display: flex;
+                    flex-direction: column;
+                    font-size: 12.5px;
+                    font-weight: bold;
+                    color: #374151;
+                    gap: 5px;
+                }
+
+                .sb-form input, .sb-form textarea, .sb-form select {
+                    font: inherit;
+                    padding: 9px 11px;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 9px;
+                    background: #f9fafb;
+                    font-weight: normal;
+                }
+
+            .sb-actions {
+                display: flex;
+                gap: 10px;
+                justify-content: flex-end;
+                margin-top: 4px;
+            }
+
+            .empty {
+                text-align: center;
+                color: #6b7280;
+                padding: 26px;
+                font-size: 13px;
+            }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        @await Html.PartialAsync("_AdminSidebar")
+
+        <main class="main">
+            <header class="topbar">
+                <div class="topbar-brand">🌱 Smart Biodiversity</div>
+                <a asp-controller="Administracion" asp-action="Index" class="back-button">← Volver al dashboard</a>
+            </header>
+
+            <section class="content">
+                <div class="page-title">
+                    <h1>📢 Avisos</h1>
+                    <p>Publica avisos que verán los usuarios en la app móvil. Actívalos/desactívalos o prográmalos con fecha de fin.</p>
+                </div>
+
+                @if (TempData["AvisoOk"] is string _ok)
+                {
+                    <div class="sb-alert sb-ok">✅ @_ok</div>
+                }
+                @if (TempData["AvisoError"] is string _err)
+                {
+                    <div class="sb-alert sb-err">⚠️ @_err</div>
+                }
+
+                <div class="panel">
+                    <div class="toolbar">
+                        <h2>Avisos publicados</h2>
+                        <button type="button" class="btn btn-primary" onclick="openAviso('sbCreateAviso')">＋ Publicar aviso</button>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Título</th>
+                                    <th>Mensaje</th>
+                                    <th>Categoría</th>
+                                    <th>Estado</th>
+                                    <th>Inicio</th>
+                                    <th>Fin</th>
+                                    <th style="text-align:right">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model != null && Model.Any())
+                                {
+                                    foreach (var a in Model)
+                                    {
+                                        <tr>
+                                            <td><strong class="clip" title="@a.TituloAvi">@a.TituloAvi</strong></td>
+                                            <td><span class="clip" title="@a.MensajeAvi">@a.MensajeAvi</span></td>
+                                            <td>
+                                                @if (!string.IsNullOrWhiteSpace(a.CategoriaAvi))
+                                                {
+                                                    <span class="sb-pill sb-pill-cat">@a.CategoriaAvi</span>
+                                                }
+                                                else
+                                                {
+
+                                                    <span style="color:#9ca3af">—</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <form asp-controller="Administracion" asp-action="AvisoToggle" method="post" style="display:inline">
+                                                    <input type="hidden" name="id" value="@a.IdAvisos" />
+                                                    <input type="hidden" name="activo" value="@(a.ActivoAvi ? "false" : "true")" />
+                                                    <button type="submit" class="sb-pill @(a.ActivoAvi ? "sb-pill-ok" : "sb-pill-off")" title="Clic para cambiar el estado">@(a.ActivoAvi ? "Activo" : "Inactivo")</button>
+                                                </form>
+                                            </td>
+                                            <td>@a.FechaIniAvi.ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td>@(a.FechaFinAvi.HasValue ? a.FechaFinAvi.Value.ToString("dd/MM/yyyy HH:mm") : "Sin expiración")</td>
+                                            <td style="text-align:right; white-space:nowrap">
+                                                <button type="button" class="btn btn-edit" onclick="openEditAviso(this)"
+                                                        data-id="@a.IdAvisos" data-titulo="@a.TituloAvi" data-mensaje="@a.MensajeAvi"
+                                                        data-categoria="@a.CategoriaAvi" data-activo="@a.ActivoAvi"
+                                                        data-ini="@a.FechaIniAvi.ToString("yyyy-MM-ddTHH:mm")"
+                                                        data-fin="@(a.FechaFinAvi.HasValue ? a.FechaFinAvi.Value.ToString("yyyy-MM-ddTHH:mm") : "")" title="Editar">
+                                                    ✏️
+                                                </button>
+                                                <form asp-controller="Administracion" asp-action="AvisoEliminar" method="post" style="display:inline"
+                                                      onsubmit="return confirm('¿Eliminar este aviso?');">
+                                                    <input type="hidden" name="id" value="@a.IdAvisos" />
+                                                    <button type="submit" class="btn btn-del" title="Eliminar">🗑️</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr><td colspan="7" class="empty">Aún no hay avisos. Pulsa “＋ Publicar aviso”.</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    @* ===== Modal CREAR ===== *@
+    <div id="sbCreateAviso" class="sb-modal" style="display:none" onclick="if(event.target===this)closeAviso('sbCreateAviso')">
+        <div class="sb-modal-card">
+            <h2>＋ Publicar nuevo aviso</h2>
+            <form asp-controller="Administracion" asp-action="AvisoCrear" method="post" class="sb-form">
+                <label>Título *<input name="TituloAvi" required maxlength="100" placeholder="Ej: Mantenimiento del sendero" /></label>
+                <label>Mensaje *<textarea name="MensajeAvi" required maxlength="100" rows="3" placeholder="Texto breve que verá el usuario"></textarea></label>
+                <label>
+                    Categoría
+                    <select name="CategoriaAvi">
+                        <option value="">— Sin categoría —</option>
+                        <option>General</option>
+                        <option>Evento</option>
+                        <option>Mantenimiento</option>
+                        <option>Emergencia</option>
+                        <option>Académico</option>
+                        <option>Fauna</option>
+                        <option>Flora</option>
+                        <option>Otro</option>
+                    </select>
+                </label>
+                <label>Fecha de fin (opcional)<input type="datetime-local" name="FechaFinAvi" /></label>
+                <p style="margin:0;font-size:11.5px;color:#6b7280">Se publica como <b>Activo</b> y con fecha de inicio = ahora. El aviso se asigna al rol Administrador.</p>
+                <div class="sb-actions">
+                    <button type="button" class="btn" style="background:#e5e7eb;color:#111827" onclick="closeAviso('sbCreateAviso')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Publicar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @* ===== Modal EDITAR ===== *@
+    <div id="sbEditAviso" class="sb-modal" style="display:none" onclick="if(event.target===this)closeAviso('sbEditAviso')">
+        <div class="sb-modal-card">
+            <h2>✏️ Editar aviso</h2>
+            <form asp-controller="Administracion" asp-action="AvisoEditar" method="post" class="sb-form">
+                <input type="hidden" id="eaId" name="id" />
+                <label>Título *<input id="eaTitulo" name="TituloAvi" required maxlength="100" /></label>
+                <label>Mensaje *<textarea id="eaMensaje" name="MensajeAvi" required maxlength="100" rows="3"></textarea></label>
+                <label>
+                    Categoría
+                    <select id="eaCategoria" name="CategoriaAvi">
+                        <option value="">— Sin categoría —</option>
+                        <option>General</option>
+                        <option>Evento</option>
+                        <option>Mantenimiento</option>
+                        <option>Emergencia</option>
+                        <option>Académico</option>
+                        <option>Fauna</option>
+                        <option>Flora</option>
+                        <option>Otro</option>
+                    </select>
+                </label>
+                <label>
+                    Estado
+                    <select id="eaActivo" name="ActivoAvi">
+                        <option value="true">Activo</option>
+                        <option value="false">Inactivo</option>
+                    </select>
+                </label>
+                <label>Fecha de inicio<input type="datetime-local" id="eaInicio" name="FechaIniAvi" /></label>
+                <label>Fecha de fin<input type="datetime-local" id="eaFin" name="FechaFinAvi" /></label>
+                <div class="sb-actions">
+                    <button type="button" class="btn" style="background:#e5e7eb;color:#111827" onclick="closeAviso('sbEditAviso')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+            function openAviso(id) { document.getElementById(id).style.display = 'flex'; }
+            function closeAviso(id) { document.getElementById(id).style.display = 'none'; }
+            function setSelect(id, val) {
+                var s = document.getElementById(id); if (!s) return;
+                val = String(val || '').toLowerCase();
+                for (var i = 0; i < s.options.length; i++) {
+                    if (s.options[i].value.toLowerCase() === val) { s.selectedIndex = i; return; }
+                }
+                s.selectedIndex = 0;
+            }
+            function openEditAviso(b) {
+                document.getElementById('eaId').value = b.dataset.id || '';
+                document.getElementById('eaTitulo').value = b.dataset.titulo || '';
+                document.getElementById('eaMensaje').value = b.dataset.mensaje || '';
+                setSelect('eaCategoria', b.dataset.categoria);
+                setSelect('eaActivo', b.dataset.activo);
+                document.getElementById('eaInicio').value = b.dataset.ini || '';
+                document.getElementById('eaFin').value = b.dataset.fin || '';
+                openAviso('sbEditAviso');
+            }
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') { closeAviso('sbCreateAviso'); closeAviso('sbEditAviso'); }
+            });
+    </script>
+</body>
+</html>

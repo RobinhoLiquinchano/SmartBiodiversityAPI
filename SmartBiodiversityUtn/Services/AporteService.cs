@@ -34,6 +34,15 @@ namespace SmartBiodiversityUtn.Services
             var usuario = await _context.Usuarios.FindAsync(idUsuario);
             if (usuario == null) return null;
 
+            // === LÍMITE DE APORTES POR USUARIO (últimas 24 h) ===
+            // Se valida ANTES de subir la foto para no dejar archivos huérfanos en Supabase.
+            var limite = LeerLimitePorDia();
+            var desde = DateTime.UtcNow.AddHours(-24);
+            var hechos = await _context.Aportes
+                .CountAsync(a => a.IdUsuarioApo == idUsuario && a.FechaCreacionApo >= desde);
+            if (hechos >= limite)
+                throw new LimiteAportesExcedidoException(limite);
+
             // Si viene archivo, se sube a Supabase/Aportes y su URL pública se guarda en RutaArchivoApo.
             // Si no viene archivo, RutaArchivoApo queda null (aporte sin imagen).
             string? rutaArchivo = (archivo != null && archivo.Length > 0)
@@ -63,6 +72,13 @@ namespace SmartBiodiversityUtn.Services
             });
 
             return MapToAporteResponse(aporte, usuario);
+        }
+
+        // Lee el límite diario de aportes desde appsettings (clave "Aportes:LimitePorDia"). Por defecto 5.
+        private int LeerLimitePorDia()
+        {
+            var raw = _configuration["Aportes:LimitePorDia"];
+            return int.TryParse(raw, out var n) && n > 0 ? n : 5;
         }
 
         // Sube el archivo a Supabase dentro de la carpeta "Aportes" y devuelve la URL pública
@@ -253,6 +269,17 @@ namespace SmartBiodiversityUtn.Services
                 NombreUsuario = $"{usuario.Nombres} {usuario.Apellidos}",
                 CorreoUsuario = usuario.Correo
             };
+        }
+    }
+
+    /// <summary>Se lanza cuando un usuario supera el límite diario de aportes.</summary>
+    public class LimiteAportesExcedidoException : Exception
+    {
+        public int Limite { get; }
+        public LimiteAportesExcedidoException(int limite)
+            : base($"Has alcanzado el límite de {limite} aportes por día. Intenta más tarde.")
+        {
+            Limite = limite;
         }
     }
 }

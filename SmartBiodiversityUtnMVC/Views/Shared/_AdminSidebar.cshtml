@@ -56,7 +56,8 @@
         <a asp-controller="Administracion" asp-action="InventarioEspecies"
            class="menu-item @(__sbAct == "InventarioEspecies" || __sbAct == "Fauna" || __sbAct == "Flora" ? "active" : "")">🌿 Inventario Especies</a>
 
-        <a href="#" class="menu-item">📢 Avisos</a>
+        <a asp-controller="Administracion" asp-action="Avisos"
+           class="menu-item @(__sbAct == "Avisos" ? "active" : "")">📢 Avisos</a>
 
         <a href="#" class="menu-item">🗺️ Mapa Campus</a>
 

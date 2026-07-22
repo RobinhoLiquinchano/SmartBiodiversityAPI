@@ -497,7 +497,7 @@
                             <label>Nombre científico *<input name="NombreCientifico" required maxlength="150" placeholder="Ej: Cyrtochilum retusum" /></label>
                             <label>Hábitat<input name="Habitat" maxlength="150" placeholder="Ej: Jardín botánico del campus" /></label>
                             <label>Imagen (opcional)<input type="file" name="archivo" accept="image/*" /></label>
-                            <label class="full">Descripción<textarea name="Descripcion" rows="3" maxlength="1000" placeholder="Características, floración, etc."></textarea></label>
+                            <label class="full">Descripción<textarea name="Descripcion" rows="6" maxlength="1000" style="min-height:140px; resize:vertical" placeholder="Características, floración, etc."></textarea></label>
                             <div class="full actions">
                                 <button type="submit" class="btn btn-primary">🌸 Registrar especie</button>
                             </div>
@@ -585,7 +585,7 @@
                     </select>
                 </label>
                 <label>Agregar nueva imagen (opcional)<input type="file" name="archivo" accept="image/*" /></label>
-                <label class="full">Descripción<textarea id="editDescripcion" name="Descripcion" rows="3" maxlength="1000"></textarea></label>
+                <label class="full">Descripción<textarea id="editDescripcion" name="Descripcion" rows="6" maxlength="1000" style="min-height:140px; resize:vertical"></textarea></label>
                 <div class="full actions">
                     <button type="button" class="btn btn-ghost" onclick="closeEdit()">Cancelar</button>
                     <button type="submit" class="btn btn-primary">💾 Guardar cambios</button>
