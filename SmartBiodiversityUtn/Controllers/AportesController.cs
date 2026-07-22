@@ -12,25 +12,11 @@ namespace SmartBiodiversityUtn.Controllers
     [ApiController]
     public class AportesController(IAporteService aporteService) : ControllerBase
     {
-        // Cualquier usuario autenticado puede crear
+        // Cualquier usuario autenticado puede crear (con o sin imagen) - multipart/form-data
         [HttpPost("crear")]
         [Authorize]
-        public async Task<IActionResult> CreateAporte(CreateAporteRequest request)
-        {
-            var idUsuario = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (idUsuario == null) return Unauthorized("No se pudo identificar al usuario.");
-
-            var createdAporte = await aporteService.CreateAporteAsync(idUsuario, request);
-            if (createdAporte == null) return BadRequest("No se pudo crear el aporte.");
-
-            return CreatedAtAction(nameof(GetAporteById), new { id = createdAporte.IdAporte }, createdAporte);
-        }
-
-        // Crea un aporte CON imagen: sube el archivo a Supabase/Aportes (igual que Multimedia)
-        [HttpPost("crear-con-archivo")]
-        [Authorize]
         [Consumes("multipart/form-data")]
-        public async Task<IActionResult> CreateAporteConArchivo([FromForm] CreateAporteRequest request, IFormFile? archivo)
+        public async Task<IActionResult> CreateAporte([FromForm] CreateAporteRequest request, IFormFile? archivo)
         {
             var idUsuario = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (idUsuario == null) return Unauthorized("No se pudo identificar al usuario.");
@@ -40,6 +26,7 @@ namespace SmartBiodiversityUtn.Controllers
 
             try
             {
+                // Si viene archivo, se sube a Supabase/Aportes y se guarda su URL en RutaArchivoApo
                 var createdAporte = await aporteService.CreateAporteAsync(idUsuario, request, archivo);
                 if (createdAporte == null) return BadRequest("No se pudo crear el aporte.");
 
