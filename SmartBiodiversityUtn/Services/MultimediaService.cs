@@ -104,29 +104,31 @@ namespace SmartBiodiversityUtn.Services
 
         public async Task<MultimediaResponse> GetMultimediaByEspecieIdAsync(string especieId)
         {
-            return await _context.Multimedia
-                .Where(m => m.IdEspeciesMul == especieId)
-                .Select(m => new MultimediaResponse
-                {
-                    IdMultimedia = m.IdMultimedia,
-                    EspecieId = m.IdEspeciesMul,
-                    TipoArchivo = m.TipoArchivoMul,
-                    RutaArchivo = m.RutaArchivoMul,
-                    Fecha = m.FechaMul.ToEcuadorTime()
-                }).FirstOrDefaultAsync();
+            var m = await _context.Multimedia
+                .FirstOrDefaultAsync(x => x.IdEspeciesMul == especieId);
+
+            return m == null ? null : new MultimediaResponse
+            {
+                IdMultimedia = m.IdMultimedia,
+                EspecieId = m.IdEspeciesMul,
+                TipoArchivo = m.TipoArchivoMul,
+                RutaArchivo = m.RutaArchivoMul,
+                Fecha = m.FechaMul.ToEcuadorTime()
+            };
         }
 
         public async Task<IEnumerable<MultimediaResponse>> GetMultimediaByEspecieIdAsync()
         {
-            return await _context.Multimedia
-                .Select(m => new MultimediaResponse
-                {
-                    IdMultimedia = m.IdMultimedia,
-                    EspecieId = m.IdEspeciesMul,
-                    TipoArchivo = m.TipoArchivoMul,
-                    RutaArchivo = m.RutaArchivoMul,
-                    Fecha = m.FechaMul.ToEcuadorTime()
-                }).ToListAsync();
+            var lista = await _context.Multimedia.ToListAsync();
+
+            return lista.Select(m => new MultimediaResponse
+            {
+                IdMultimedia = m.IdMultimedia,
+                EspecieId = m.IdEspeciesMul,
+                TipoArchivo = m.TipoArchivoMul,
+                RutaArchivo = m.RutaArchivoMul,
+                Fecha = m.FechaMul.ToEcuadorTime()
+            }).ToList();
         }
 
         private static string ObtenerCarpetaPorCategoria(string? nombreCategoria)

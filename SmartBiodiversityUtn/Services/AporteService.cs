@@ -52,22 +52,10 @@ namespace SmartBiodiversityUtn.Services
         public async Task<AporteResponse> GetAporteByIdAsync(string idAporte)
         {
             var aporte = await _context.Aportes
-                .Where(a => a.IdAporte == idAporte)
-                .Select(a => new AporteResponse
-                {
-                    IdAporte = a.IdAporte,
-                    IdUsuarioApo = a.IdUsuarioApo,
-                    TituloApo = a.TituloApo,
-                    DescripcionApo = a.DescripcionApo,
-                    RutaArchivoApo = a.RutaArchivoApo,
-                    EstadoApo = a.EstadoApo,
-                    FechaCreacionApo = a.FechaCreacionApo,
-                    FechaAprobacionApo = a.FechaAprobacionApo,
-                    NombreUsuario = a.Usuario.Nombres + " " + a.Usuario.Apellidos,
-                    CorreoUsuario = a.Usuario.Correo
-                }).FirstOrDefaultAsync();
+                .Include(a => a.Usuario)
+                .FirstOrDefaultAsync(a => a.IdAporte == idAporte);
 
-            return aporte;
+            return aporte == null ? null : MapToAporteResponse(aporte, aporte.Usuario);
         }
 
         public async Task<IEnumerable<AporteResponse>> GetAllAportesAsync()
