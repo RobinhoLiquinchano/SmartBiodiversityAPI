@@ -14,5 +14,6 @@ namespace SmartBiodiversityUtnModels.DTOs.Especie
         public EstadoEspecie EstadoEsp { get; set; }
         public string NombreCategoria { get; set; } = string.Empty;
         public DateTime FechaRegistroEsp { get; set; }
+        public string? ImagenUrl { get; set; }
     }
 }

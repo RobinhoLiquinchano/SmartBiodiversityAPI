@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Http;
 
 namespace SmartBiodiversityUtnMVC.Services
 {
@@ -81,6 +82,41 @@ namespace SmartBiodiversityUtnMVC.Services
             ConfigurarToken();
 
             var response = await _httpClient.DeleteAsync(endpoint);
+            return response.IsSuccessStatusCode;
+        }
+
+        /// <summary>
+        /// POST multipart/form-data (para subir archivos a la API reenviando el JWT del admin).
+        /// </summary>
+        /// <param name="endpoint">Ruta relativa, ej. "api/Multimedias".</param>
+        /// <param name="file">Archivo recibido desde el formulario del MVC.</param>
+        /// <param name="fileFieldName">Nombre del campo del archivo en la API (en la API es "Archivo").</param>
+        /// <param name="fields">Campos de texto adicionales (EspecieId, TipoArchivo, ...).</param>
+        public async Task<bool> PostMultipartAsync(
+            string endpoint,
+            IFormFile file,
+            string fileFieldName,
+            IEnumerable<KeyValuePair<string, string>>? fields = null)
+        {
+            ConfigurarToken();
+
+            using var formData = new MultipartFormDataContent();
+
+            // Campos de texto
+            if (fields != null)
+            {
+                foreach (var f in fields)
+                    formData.Add(new StringContent(f.Value), f.Key);
+            }
+
+            // Archivo
+            using var stream = file.OpenReadStream();
+            var fileContent = new StreamContent(stream);
+            fileContent.Headers.ContentType =
+                new MediaTypeHeaderValue(file.ContentType ?? "application/octet-stream");
+            formData.Add(fileContent, fileFieldName, file.FileName);
+
+            var response = await _httpClient.PostAsync(endpoint, formData);
             return response.IsSuccessStatusCode;
         }
     }
