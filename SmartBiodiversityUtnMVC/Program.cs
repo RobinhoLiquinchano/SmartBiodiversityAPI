@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using SmartBiodiversityUtnMVC.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -31,6 +32,17 @@ builder.Services.AddSession(options =>
 });
 
 var app = builder.Build();
+
+var forwarded = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+    RequireHeaderSymmetry = false
+};
+forwarded.KnownNetworks.Clear();   // confía en el proxy de Render
+forwarded.KnownProxies.Clear();
+app.UseForwardedHeaders(forwarded);
+
+
 
 if (!app.Environment.IsDevelopment())
 {
