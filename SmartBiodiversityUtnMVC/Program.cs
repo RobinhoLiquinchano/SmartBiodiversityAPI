@@ -38,11 +38,9 @@ var forwarded = new ForwardedHeadersOptions
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
     RequireHeaderSymmetry = false
 };
-forwarded.KnownNetworks.Clear();   // confía en el proxy de Render
+forwarded.KnownNetworks.Clear();
 forwarded.KnownProxies.Clear();
 app.UseForwardedHeaders(forwarded);
-
-
 
 if (!app.Environment.IsDevelopment())
 {
