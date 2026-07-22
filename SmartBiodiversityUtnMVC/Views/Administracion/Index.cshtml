@@ -451,13 +451,11 @@
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>Foto</th>
+                                        <th style="width:44px">Foto</th>
                                         <th>Nombre común</th>
-                                        <th>Nombre científico</th>
                                         <th>Categoría</th>
-                                        <th>Hábitat</th>
                                         <th>Estado</th>
-                                        <th>Fecha registro</th>
+                                        <th>Registrado</th>
                                         <th style="text-align:right">Acciones</th>
                                     </tr>
                                 </thead>
@@ -481,12 +479,10 @@
                                                         <span class="sb-noimg" title="Sin imagen">📷</span>
                                                     }
                                                 </td>
-                                                <td><strong>@e.NombreComun</strong></td>
-                                                <td><em>@e.NombreCientifico</em></td>
+                                                <td><strong title="@e.NombreComun">@e.NombreComun</strong></td>
                                                 <td><span class="sb-pill sb-pill-cat">@e.NombreCategoria</span></td>
-                                                <td>@(string.IsNullOrWhiteSpace(e.Habitat) ? "—" : e.Habitat)</td>
                                                 <td><span class="sb-pill @estPill">@estLabel</span></td>
-                                                <td>@e.FechaRegistroEsp.ToString("dd/MM/yyyy HH:mm")</td>
+                                                <td>@e.FechaRegistroEsp.ToString("dd/MM/yyyy")</td>
                                                 <td style="text-align:right; white-space:nowrap">
                                                     <button type="button" class="sb-btn sb-edit" onclick="openEdit(this)"
                                                             data-id="@e.IdEspecie" data-nombre="@e.NombreComun" data-cientifico="@e.NombreCientifico"
@@ -504,7 +500,7 @@
                                     }
                                     else
                                     {
-                                        <tr><td colspan="8" style="text-align:center; color:var(--muted); padding:28px">Aún no hay especies registradas. Usa “Nuevo Registro”.</td></tr>
+                                        <tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px">Aún no hay especies registradas. Usa “Nuevo Registro”.</td></tr>
                                     }
                                 </tbody>
                             </table>
@@ -703,36 +699,148 @@
             }
 
             /* === Tabla del inventario: texto adaptable + scroll horizontal de respaldo === */
+            /* ===== Dashboard compacto (ajuste de inspección) ===== */
+            .content {
+                padding: 20px 22px;
+            }
+
+            .page-title {
+                margin-bottom: 14px;
+            }
+
+                .page-title h1 {
+                    font-size: 21px;
+                }
+
+                .page-title p {
+                    font-size: 13px;
+                    margin: 3px 0 0;
+                }
+
+            .kpi-grid {
+                gap: 12px;
+                margin-bottom: 16px;
+            }
+
+            .kpi-card {
+                padding: 12px 14px;
+                min-height: 0;
+                gap: 12px;
+            }
+
+            .kpi-icon {
+                width: 38px;
+                height: 38px;
+                border-radius: 10px;
+                font-size: 17px;
+            }
+
+            .kpi-title {
+                font-size: 11.5px;
+                margin-bottom: 2px;
+                letter-spacing: .2px;
+            }
+
+            .kpi-value {
+                font-size: 21px;
+                line-height: 1.1;
+            }
+
+            .main-grid {
+                gap: 16px;
+                grid-template-columns: 1fr 250px;
+            }
+
+            .card-header {
+                padding: 12px 16px;
+            }
+
+                .card-header h2 {
+                    font-size: 15px;
+                }
+
+                .card-header p {
+                    font-size: 12px;
+                    margin: 2px 0 0;
+                }
+
+            .quick-actions {
+                padding: 14px 16px;
+            }
+
+            .action-list {
+                gap: 9px;
+            }
+
+            .action-btn {
+                padding: 10px 12px;
+                gap: 10px;
+                font-size: 13px;
+                border-radius: 10px;
+            }
+
+            .action-icon {
+                width: 20px;
+                height: 20px;
+                font-size: 14px;
+            }
+
+            /* Tabla resumen: horizontal, compacta, una línea por fila (NUNCA vertical) */
             .card .table-wrap {
-                overflow-x: auto !important;
+                overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
             }
 
             .card table {
                 width: 100%;
+                min-width: 0;
                 border-collapse: collapse;
             }
 
                 .card table th, .card table td {
-                    white-space: normal !important;
-                    word-break: break-word;
+                    padding: 7px 10px !important;
+                    font-size: 12.5px !important;
+                    white-space: nowrap !important;
                     vertical-align: middle;
                 }
 
-                    .card table td:nth-child(3), .card table th:nth-child(3) {
-                        min-width: 150px;
+                .card table th {
+                    font-size: 10.5px;
+                    text-transform: uppercase;
+                    letter-spacing: .4px;
+                    color: var(--muted);
+                }
+
+                .card table td:nth-child(2) {
+                    max-width: 240px;
+                }
+
+                    .card table td:nth-child(2) strong {
+                        display: block;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
                     }
-                    /* Nombre científico */
-                    .card table td:nth-child(5), .card table th:nth-child(5) {
-                        min-width: 180px;
-                        max-width: 340px;
-                    }
-                    /* Hábitat: se ajusta */
-                    .card table td:nth-child(7), .card table th:nth-child(7),
-                    .card table td:nth-child(8), .card table th:nth-child(8) {
-                        white-space: nowrap !important;
-                    }
-            /* Fecha y Acciones fijas */
+
+            .sb-thumb {
+                width: 32px !important;
+                height: 32px !important;
+                border-radius: 6px;
+            }
+
+            .sb-noimg {
+                font-size: 16px;
+            }
+
+            .sb-pill {
+                font-size: 10.5px;
+                padding: 2px 8px;
+            }
+
+            .sb-btn {
+                padding: 4px 8px;
+                font-size: 12px;
+                border-radius: 7px;
+            }
     </style>
 
     @* ===== Modal: REGISTRAR especie (elige Flora o Fauna + imagen) ===== *@
@@ -742,7 +850,7 @@
             <form asp-controller="Administracion" asp-action="EspecieCreate" method="post" enctype="multipart/form-data" class="sb-form">
                 <label>
                     Categoría *
-                    <select id="sbCreateCat" name="CategoriaId" required onchange="actualizarEjemplos()">
+                    <select id="sbCreateCat" name="CategoriaId" required onchange="actualizarEjemplos(this)">
                         <option value="">-- Selecciona --</option>
                         @if (ViewBag.FloraId != null)
                         {
@@ -803,28 +911,31 @@
             function openCreate() { document.getElementById('sbCreate').style.display = 'flex'; }
             function closeCreate() { document.getElementById('sbCreate').style.display = 'none'; }
 
-            // Cambia los textos de ejemplo según el reino elegido (Flora / Fauna)
-            function actualizarEjemplos() {
-                var sel = document.getElementById('sbCreateCat');
-                var opt = sel && sel.selectedOptions && sel.selectedOptions[0];
-                var reino = opt ? opt.getAttribute('data-reino') : null;
+            // Cambia los textos de ejemplo según el reino elegido (Flora / Fauna).
+            // Robusto: recibe el <select> por 'this' y busca los inputs por NOMBRE dentro de su <form>.
+            function actualizarEjemplos(sel) {
+                sel = sel || document.getElementById('sbCreateCat');
+                if (!sel) return;
+                var opt = sel.selectedOptions && sel.selectedOptions[0];
+                var txt = (opt ? ((opt.getAttribute('data-reino') || opt.textContent) || '') : '').toLowerCase();
 
-                var n = document.getElementById('sbCreateNombre');
-                var c = document.getElementById('sbCreateCientifico');
-                var h = document.getElementById('sbCreateHabitat');
-                if (!n || !c) return;
+                var form = sel.closest ? sel.closest('form') : null;
+                if (!form) return;
+                var n = form.querySelector('[name="NombreComun"]');
+                var c = form.querySelector('[name="NombreCientifico"]');
+                var h = form.querySelector('[name="Habitat"]');
 
-                if (reino === 'fauna') {
-                    n.placeholder = 'Ej: Colibrí andino';
-                    c.placeholder = 'Ej: Amazilia franciae';
+                if (txt.indexOf('fauna') !== -1) {
+                    if (n) n.placeholder = 'Ej: Colibrí andino';
+                    if (c) c.placeholder = 'Ej: Amazilia franciae';
                     if (h) h.placeholder = 'Ej: Bosque húmedo, sabana, páramo';
-                } else if (reino === 'flora') {
-                    n.placeholder = 'Ej: Orquídea del campus';
-                    c.placeholder = 'Ej: Cyrtochilum retusum';
+                } else if (txt.indexOf('flora') !== -1) {
+                    if (n) n.placeholder = 'Ej: Orquídea del campus';
+                    if (c) c.placeholder = 'Ej: Cyrtochilum retusum';
                     if (h) h.placeholder = 'Ej: Jardín botánico, bosque nublado';
                 } else {
-                    n.placeholder = 'Selecciona una categoría para ver ejemplos';
-                    c.placeholder = 'Selecciona una categoría para ver ejemplos';
+                    if (n) n.placeholder = 'Selecciona Flora o Fauna para ver ejemplos';
+                    if (c) c.placeholder = 'Selecciona Flora o Fauna para ver ejemplos';
                     if (h) h.placeholder = 'Ej: tipo de hábitat';
                 }
             }
