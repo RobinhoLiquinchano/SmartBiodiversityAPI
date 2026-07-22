@@ -5,6 +5,8 @@ using SmartBiodiversityUtnModels.DTOs;
 using SmartBiodiversityUtnModels.DTOs.Aporte;
 using SmartBiodiversityUtnModels.DTOs.Bitacora;
 using SmartBiodiversityUtnModels.Entities;
+using Microsoft.AspNetCore.Http;
+using System.Net.Http.Headers;
 
 namespace SmartBiodiversityUtn.Services
 {
@@ -12,11 +14,19 @@ namespace SmartBiodiversityUtn.Services
     {
         private readonly SmartBiodiversityUtnContext _context;
         private readonly IBitacoraService _bitacoraService;
+        private readonly IConfiguration _configuration;
+        private readonly HttpClient _httpClient;
 
-        public AporteService(SmartBiodiversityUtnContext context, IBitacoraService bitacoraService)
+        public AporteService(
+            SmartBiodiversityUtnContext context,
+            IBitacoraService bitacoraService,
+            IConfiguration configuration,
+            HttpClient httpClient)
         {
             _context = context;
             _bitacoraService = bitacoraService;
+            _configuration = configuration;
+            _httpClient = httpClient;
         }
 
         public async Task<AporteResponse> CreateAporteAsync(string idUsuario, CreateAporteRequest request)
@@ -47,6 +57,45 @@ namespace SmartBiodiversityUtn.Services
             });
 
             return MapToAporteResponse(aporte, usuario);
+        }
+
+        // Crea un aporte y, si se envía un archivo, lo sube a Supabase (carpeta Aportes)
+        public async Task<AporteResponse> CreateAporteAsync(string idUsuario, CreateAporteRequest request, IFormFile? archivo)
+        {
+            if (archivo != null && archivo.Length > 0)
+            {
+                request.RutaArchivoApo = await SubirAporteAsync(archivo);
+            }
+
+            return await CreateAporteAsync(idUsuario, request);
+        }
+
+        // Sube el archivo a Supabase dentro de la carpeta "Aportes" y devuelve la URL pública
+        private async Task<string?> SubirAporteAsync(IFormFile archivo)
+        {
+            var supabaseUrl = _configuration["Supabase:Url"];
+            var supabaseKey = _configuration["Supabase:ServiceRoleKey"];
+            var bucketName = _configuration["Supabase:BucketName"] ?? "especies-multimedia";
+
+            var fileName = $"{Guid.NewGuid()}_{archivo.FileName}";
+            var storagePath = $"{bucketName}/Aportes/{fileName}";
+            var uploadUrl = $"{supabaseUrl}/storage/v1/object/{storagePath}";
+
+            using var stream = archivo.OpenReadStream();
+            var content = new StreamContent(stream);
+            content.Headers.ContentType = new MediaTypeHeaderValue(archivo.ContentType ?? "application/octet-stream");
+
+            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", supabaseKey);
+
+            var response = await _httpClient.PostAsync(uploadUrl, content);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Error al subir a Supabase: {error}");
+            }
+
+            return $"{supabaseUrl}/storage/v1/object/public/{storagePath}";
         }
 
         public async Task<AporteResponse> GetAporteByIdAsync(string idAporte)

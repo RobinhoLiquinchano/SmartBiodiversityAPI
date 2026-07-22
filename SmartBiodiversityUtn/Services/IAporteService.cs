@@ -1,5 +1,6 @@
 ﻿using SmartBiodiversityUtnModels.DTOs;
 using SmartBiodiversityUtnModels.DTOs.Aporte;
+using Microsoft.AspNetCore.Http;
 
 namespace SmartBiodiversityUtn.Services
 {
@@ -10,6 +11,7 @@ namespace SmartBiodiversityUtn.Services
         Task<AporteResponse> GetAporteByIdAsync(string idAporte);
         Task<IEnumerable<AporteResponse>> GetAllAportesAsync();
         Task<AporteResponse> CreateAporteAsync(string idUsuario, CreateAporteRequest request);
+        Task<AporteResponse> CreateAporteAsync(string idUsuario, CreateAporteRequest request, IFormFile? archivo);
 
         Task<IEnumerable<AporteResponse>> GetAportesByUsuarioAsync(string idUsuario);
 

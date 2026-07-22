@@ -529,178 +529,40 @@
     </div>
 
     <style>
-            .sb-alert {
-                padding: 14px 18px;
-                border-radius: 12px;
-                margin-bottom: 18px;
-                font-weight: bold;
-            }
+            .sb-alert { padding: 14px 18px; border-radius: 12px; margin-bottom: 18px; font-weight: bold; }
+            .sb-ok { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+            .sb-err { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+            .sb-thumb { width: 46px; height: 46px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); display: block; }
+            .sb-noimg { font-size: 20px; }
+            .sb-pill { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: bold; }
+            .sb-pill-ok { background: #dcfce7; color: #166534; }
+            .sb-pill-off { background: #e5e7eb; color: #374151; }
+            .sb-pill-rev { background: #fef9c3; color: #854d0e; }
+            .sb-pill-cat { background: #dbeafe; color: #1d4ed8; }
+            .sb-btn { border: none; cursor: pointer; font: inherit; font-weight: bold; border-radius: 8px; padding: 8px 12px; }
+            .sb-edit { background: #dbeafe; color: #1d4ed8; }
+            .sb-del { background: #fee2e2; color: #b91c1c; }
+            .sb-primary { background: var(--primary); color: #fff; padding: 10px 16px; }
+            .sb-ghost { background: #e5e7eb; color: #111827; padding: 10px 16px; }
+            .sb-modal { position: fixed; inset: 0; background: rgba(15,23,42,.55); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+            .sb-modal-card { background: #fff; border-radius: 16px; padding: 26px; width: 100%; max-width: 520px; box-shadow: 0 20px 50px rgba(0,0,0,.3); max-height: 90vh; overflow-y: auto; }
+            .sb-form { display: flex; flex-direction: column; gap: 12px; }
+            .sb-form label { display: flex; flex-direction: column; font-size: 13px; font-weight: bold; color: #374151; gap: 6px; }
+            .sb-form input, .sb-form textarea, .sb-form select { font: inherit; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: #f9fafb; font-weight: normal; }
+            .sb-form input[type="file"] { background: #fff; padding: 8px; }
+            .sb-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px; }
+            .sb-lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.88); display: flex; align-items: center; justify-content: center; z-index: 2000; padding: 20px; cursor: zoom-out; }
+            .sb-lightbox img { max-width: 92vw; max-height: 92vh; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+            a.action-btn { text-decoration: none; color: inherit; }
 
-            .sb-ok {
-                background: #dcfce7;
-                color: #166534;
-                border: 1px solid #86efac;
-            }
-
-            .sb-err {
-                background: #fee2e2;
-                color: #991b1b;
-                border: 1px solid #fca5a5;
-            }
-
-            .sb-thumb {
-                width: 46px;
-                height: 46px;
-                object-fit: cover;
-                border-radius: 8px;
-                border: 1px solid var(--border);
-                display: block;
-            }
-
-            .sb-noimg {
-                font-size: 20px;
-            }
-
-            .sb-pill {
-                display: inline-block;
-                padding: 4px 10px;
-                border-radius: 999px;
-                font-size: 12px;
-                font-weight: bold;
-            }
-
-            .sb-pill-ok {
-                background: #dcfce7;
-                color: #166534;
-            }
-
-            .sb-pill-off {
-                background: #e5e7eb;
-                color: #374151;
-            }
-
-            .sb-pill-rev {
-                background: #fef9c3;
-                color: #854d0e;
-            }
-
-            .sb-pill-cat {
-                background: #dbeafe;
-                color: #1d4ed8;
-            }
-
-            .sb-btn {
-                border: none;
-                cursor: pointer;
-                font: inherit;
-                font-weight: bold;
-                border-radius: 8px;
-                padding: 8px 12px;
-            }
-
-            .sb-edit {
-                background: #dbeafe;
-                color: #1d4ed8;
-            }
-
-            .sb-del {
-                background: #fee2e2;
-                color: #b91c1c;
-            }
-
-            .sb-primary {
-                background: var(--primary);
-                color: #fff;
-                padding: 10px 16px;
-            }
-
-            .sb-ghost {
-                background: #e5e7eb;
-                color: #111827;
-                padding: 10px 16px;
-            }
-
-            .sb-modal {
-                position: fixed;
-                inset: 0;
-                background: rgba(15,23,42,.55);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 1000;
-                padding: 16px;
-            }
-
-            .sb-modal-card {
-                background: #fff;
-                border-radius: 16px;
-                padding: 26px;
-                width: 100%;
-                max-width: 520px;
-                box-shadow: 0 20px 50px rgba(0,0,0,.3);
-                max-height: 90vh;
-                overflow-y: auto;
-            }
-
-            .sb-form {
-                display: flex;
-                flex-direction: column;
-                gap: 12px;
-            }
-
-                .sb-form label {
-                    display: flex;
-                    flex-direction: column;
-                    font-size: 13px;
-                    font-weight: bold;
-                    color: #374151;
-                    gap: 6px;
-                }
-
-                .sb-form input, .sb-form textarea, .sb-form select {
-                    font: inherit;
-                    padding: 10px 12px;
-                    border: 1px solid var(--border);
-                    border-radius: 10px;
-                    background: #f9fafb;
-                    font-weight: normal;
-                }
-
-                    .sb-form input[type="file"] {
-                        background: #fff;
-                        padding: 8px;
-                    }
-
-            .sb-actions {
-                display: flex;
-                gap: 10px;
-                justify-content: flex-end;
-                margin-top: 6px;
-            }
-
-            .sb-lightbox {
-                position: fixed;
-                inset: 0;
-                background: rgba(0,0,0,.88);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 2000;
-                padding: 20px;
-                cursor: zoom-out;
-            }
-
-                .sb-lightbox img {
-                    max-width: 92vw;
-                    max-height: 92vh;
-                    border-radius: 12px;
-                    box-shadow: 0 20px 60px rgba(0,0,0,.6);
-                }
-
-            a.action-btn {
-                text-decoration: none;
-                color: inherit;
-            }
+            /* === Tabla del inventario: texto adaptable + scroll horizontal de respaldo === */
+            .card .table-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+            .card table { width: 100%; border-collapse: collapse; }
+            .card table th, .card table td { white-space: normal !important; word-break: break-word; vertical-align: middle; }
+            .card table td:nth-child(3), .card table th:nth-child(3) { min-width: 150px; }              /* Nombre científico */
+            .card table td:nth-child(5), .card table th:nth-child(5) { min-width: 180px; max-width: 340px; } /* Hábitat: se ajusta */
+            .card table td:nth-child(7), .card table th:nth-child(7),
+            .card table td:nth-child(8), .card table th:nth-child(8) { white-space: nowrap !important; }   /* Fecha y Acciones fijas */
     </style>
 
     @* ===== Modal: REGISTRAR especie (elige Flora o Fauna + imagen) ===== *@

@@ -59,7 +59,7 @@ builder.Services.AddScoped<IAuthServices, AuthServices>();
 builder.Services.AddScoped<ICategoriaService, CategoriaService>();
 builder.Services.AddScoped<IEspecieService, EspecieService>();
 builder.Services.AddHttpClient<IMultimediaService, MultimediaService>();
-builder.Services.AddScoped<IAporteService, AporteService>();
+builder.Services.AddHttpClient<IAporteService, AporteService>();
 builder.Services.AddScoped<IAvisoService, AvisoService>();
 builder.Services.AddHttpClient<IEmailService, EmailService>();
 builder.Services.AddScoped<IBitacoraService, BitacoraService>();
@@ -87,9 +87,9 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()           
-              .AllowAnyMethod()            
-              .AllowAnyHeader();          
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
     });
 });
 
@@ -166,9 +166,9 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "Error al crear los roles o el usuario administrador por defecto.");
     }
 }
-app.UseAuthentication();     
+app.UseAuthentication();
 
-app.UseAuthorization(); 
+app.UseAuthorization();
 
 app.MapControllers();
 

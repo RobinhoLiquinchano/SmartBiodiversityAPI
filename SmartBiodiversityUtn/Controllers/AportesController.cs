@@ -4,6 +4,7 @@ using SmartBiodiversityUtn.Services;
 using SmartBiodiversityUtnModels.DTOs;
 using SmartBiodiversityUtnModels.DTOs.Aporte;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 
 namespace SmartBiodiversityUtn.Controllers
 {
@@ -23,6 +24,31 @@ namespace SmartBiodiversityUtn.Controllers
             if (createdAporte == null) return BadRequest("No se pudo crear el aporte.");
 
             return CreatedAtAction(nameof(GetAporteById), new { id = createdAporte.IdAporte }, createdAporte);
+        }
+
+        // Crea un aporte CON imagen: sube el archivo a Supabase/Aportes (igual que Multimedia)
+        [HttpPost("crear-con-archivo")]
+        [Authorize]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> CreateAporteConArchivo([FromForm] CreateAporteRequest request, IFormFile? archivo)
+        {
+            var idUsuario = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (idUsuario == null) return Unauthorized("No se pudo identificar al usuario.");
+
+            if (string.IsNullOrWhiteSpace(request.TituloApo))
+                return BadRequest("El título del aporte es obligatorio.");
+
+            try
+            {
+                var createdAporte = await aporteService.CreateAporteAsync(idUsuario, request, archivo);
+                if (createdAporte == null) return BadRequest("No se pudo crear el aporte.");
+
+                return CreatedAtAction(nameof(GetAporteById), new { id = createdAporte.IdAporte }, createdAporte);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpGet("{id}")]
