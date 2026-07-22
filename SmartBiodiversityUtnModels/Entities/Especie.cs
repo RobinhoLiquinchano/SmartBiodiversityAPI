@@ -25,7 +25,7 @@ namespace SmartBiodiversityUtnModels.Entities
         [MaxLength(100)]
         public string NombreCientificoEsp { get; set; } = string.Empty;
 
-        [MaxLength(100)]
+        [StringLength(2000)]
         public string? DescripcionEsp { get; set; }
 
         [MaxLength(200)]
