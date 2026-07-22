@@ -1,0 +1,553 @@
+﻿@using SmartBiodiversityUtnModels.DTOs
+@using SmartBiodiversityUtnModels.DTOs.Especie
+@model IEnumerable<SmartBiodiversityUtnModels.DTOs.Especie.EspecieResponse>
+
+@{
+    Layout = null;
+    ViewData["Title"] = "Reportes";
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reportes - Smart Biodiversity</title>
+    <style>
+            :root {
+                --bg: #f4f6fa;
+                --sidebar: #162232;
+                --sidebar-light: #223044;
+                --primary: #22c55e;
+                --blue: #2563eb;
+                --text: #111827;
+                --muted: #6b7280;
+                --card: #fff;
+                --border: #e5e7eb;
+                --radius: 16px;
+                --shadow: 0 10px 25px rgba(15,23,42,.08);
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            body {
+                margin: 0;
+                font-family: Arial,Helvetica,sans-serif;
+                background: var(--bg);
+                color: var(--text);
+            }
+
+            .dashboard {
+                display: grid;
+                grid-template-columns: 260px 1fr;
+                min-height: 100vh;
+            }
+
+            .sidebar {
+                background: var(--sidebar);
+                color: #fff;
+                padding: 24px 16px;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .logo {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 40px;
+            }
+
+            .logo-icon {
+                width: 42px;
+                height: 42px;
+                border-radius: 10px;
+                background: var(--primary);
+                display: grid;
+                place-items: center;
+                font-size: 22px;
+            }
+
+            .logo-text {
+                font-weight: bold;
+                line-height: 1.1;
+            }
+
+                .logo-text span {
+                    color: var(--primary);
+                    display: block;
+                }
+
+            .menu-title {
+                font-size: 12px;
+                color: #94a3b8;
+                margin: 0 0 12px 8px;
+                letter-spacing: 1px;
+            }
+
+            .menu {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .menu-item {
+                display: block;
+                padding: 14px 16px;
+                border-radius: 10px;
+                color: #cbd5e1;
+                text-decoration: none;
+                font-size: 15px;
+            }
+
+                .menu-item:hover {
+                    background: var(--sidebar-light);
+                }
+
+                .menu-item.active {
+                    background: rgba(34,197,94,.15);
+                    color: var(--primary);
+                    font-weight: bold;
+                    border-right: 4px solid var(--primary);
+                }
+
+            .profile {
+                margin-top: auto;
+                background: var(--sidebar-light);
+                border-radius: 14px;
+                padding: 16px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+
+            .avatar {
+                width: 42px;
+                height: 42px;
+                border-radius: 50%;
+                background: #6366f1;
+                display: grid;
+                place-items: center;
+                font-weight: bold;
+            }
+
+            .profile-info strong {
+                display: block;
+                font-size: 15px;
+            }
+
+            .profile-info span {
+                color: #94a3b8;
+                font-size: 13px;
+            }
+
+            .main {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .topbar {
+                height: 72px;
+                padding: 0 28px;
+                background: #fff;
+                border-bottom: 1px solid var(--border);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .topbar-brand {
+                font-size: 20px;
+                font-weight: bold;
+            }
+
+            .back-button {
+                background: #dbeafe;
+                color: #1d4ed8;
+                text-decoration: none;
+                border-radius: 10px;
+                padding: 10px 16px;
+                font-weight: bold;
+            }
+
+            .content {
+                padding: 32px;
+            }
+
+            .page-title h1 {
+                margin: 0;
+                font-size: 30px;
+            }
+
+            .page-title p {
+                color: var(--muted);
+                margin: 8px 0 28px;
+            }
+
+            .panel {
+                background: var(--card);
+                border-radius: var(--radius);
+                box-shadow: var(--shadow);
+                padding: 24px;
+                margin-bottom: 26px;
+            }
+
+                .panel h2 {
+                    margin: 0 0 18px;
+                    font-size: 20px;
+                }
+
+            .toolbar {
+                display: flex;
+                gap: 12px;
+                align-items: center;
+                flex-wrap: wrap;
+                margin-bottom: 18px;
+            }
+
+                .toolbar label {
+                    font-weight: bold;
+                    font-size: 13px;
+                    color: #374151;
+                }
+
+            select.sel {
+                padding: 10px 12px;
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                font: inherit;
+                background: #f9fafb;
+            }
+
+            .btn {
+                border: none;
+                cursor: pointer;
+                font: inherit;
+                font-weight: bold;
+                border-radius: 10px;
+                padding: 10px 16px;
+                text-decoration: none;
+                display: inline-block;
+            }
+
+            .btn-excel {
+                background: #16a34a;
+                color: #fff;
+            }
+
+                .btn-excel:hover {
+                    background: #15803d;
+                }
+
+            .btn-pdf {
+                background: #dc2626;
+                color: #fff;
+            }
+
+                .btn-pdf:hover {
+                    background: #b91c1c;
+                }
+
+            .count {
+                color: var(--muted);
+                font-size: 13px;
+                margin-left: auto;
+            }
+
+            .table-wrap {
+                overflow-x: auto;
+            }
+
+            .tbl {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 14px;
+            }
+
+                .tbl th, .tbl td {
+                    text-align: left;
+                    padding: 12px 14px;
+                    border-bottom: 1px solid var(--border);
+                    vertical-align: middle;
+                }
+
+                .tbl thead th {
+                    background: #f9fafb;
+                    color: #374151;
+                    font-size: 12px;
+                    text-transform: uppercase;
+                    letter-spacing: .5px;
+                }
+
+                .tbl tbody tr:hover {
+                    background: #f9fafb;
+                }
+
+            .badge {
+                display: inline-block;
+                padding: 4px 10px;
+                border-radius: 999px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+
+            .b-ok {
+                background: #dcfce7;
+                color: #166534;
+            }
+
+            .b-off {
+                background: #e5e7eb;
+                color: #374151;
+            }
+
+            .b-rev {
+                background: #fef9c3;
+                color: #854d0e;
+            }
+
+            .b-cat {
+                background: #dbeafe;
+                color: #1d4ed8;
+            }
+
+            .thumb {
+                width: 46px;
+                height: 46px;
+                object-fit: cover;
+                border-radius: 8px;
+                border: 1px solid var(--border);
+            }
+
+            .empty-state {
+                background: #fff;
+                padding: 42px;
+                border-radius: var(--radius);
+                box-shadow: var(--shadow);
+                text-align: center;
+                color: var(--muted);
+            }
+
+            .note {
+                font-size: 12px;
+                color: var(--muted);
+                margin-top: 12px;
+            }
+
+            @@media (max-width:900px) {
+                .dashboard {
+                    grid-template-columns: 1fr;
+                }
+
+                .sidebar {
+                    display: none;
+                }
+
+                .content {
+                    padding: 24px 16px;
+                }
+            }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="logo"><div class="logo-icon">🌱</div><div class="logo-text">Smart <span>Biodiversity</span></div></div>
+            <p class="menu-title">MENÚ</p>
+            <nav class="menu">
+                <a asp-controller="Administracion" asp-action="Index" class="menu-item">▦ Dashboard</a>
+                <a asp-controller="Administracion" asp-action="InventarioEspecies" class="menu-item">🌿 Inventario Especies</a>
+                <a href="#" class="menu-item">🔬 Taxonomía</a>
+                <a href="#" class="menu-item">🗺️ Mapa Campus</a>
+                <a asp-controller="Administracion" asp-action="Reportes" class="menu-item active">📊 Reportes</a>
+                <a asp-controller="Administracion" asp-action="Usuarios" class="menu-item">👥 Usuarios</a>
+                <a href="#" class="menu-item">⚙️ Configuración</a>
+                
+            </nav>
+            <div class="profile"><div class="avatar">A</div><div class="profile-info"><strong>Perfil</strong><span>Administrador Principal</span></div></div>
+        </aside>
+
+        <main class="main">
+            <header class="topbar">
+                <div class="topbar-brand">🌱 Smart Biodiversity</div>
+                <a asp-controller="Administracion" asp-action="Index" class="back-button">← Volver al dashboard</a>
+            </header>
+
+            <section class="content">
+                <div class="page-title">
+                    <h1>📊 Reportes de inventario</h1>
+                    <p>Descarga el inventario de especies en Excel o PDF, filtrado por Flora, Fauna o ambos.</p>
+                </div>
+
+                <div class="panel">
+                    <div class="toolbar">
+                        <label for="scope">Alcance del reporte:</label>
+                        <select id="scope" class="sel" onchange="aplicarFiltro()">
+                            <option value="todos">🌍 Todos (Flora + Fauna)</option>
+                            <option value="flora">🌸 Solo Flora</option>
+                            <option value="fauna">🦋 Solo Fauna</option>
+                        </select>
+                        <button type="button" class="btn btn-excel" onclick="exportarExcel()">📊 Descargar Excel</button>
+                        <button type="button" class="btn btn-pdf" onclick="exportarPDF()">📄 Descargar PDF</button>
+                        <span class="count" id="contador"></span>
+                    </div>
+
+                    @if (Model != null && Model.Any())
+                    {
+                        <div class="table-wrap">
+                            <table class="tbl">
+                                <thead>
+                                    <tr><th>#</th><th>Foto</th><th>Nombre común</th><th>Nombre científico</th><th>Categoría</th><th>Estado</th><th>Hábitat</th><th>Fecha registro</th></tr>
+                                </thead>
+                                <tbody>
+                                    @{
+                                        int idx = 1;
+                                    }
+                                    @foreach (var e in Model)
+                                    {
+                                        var estLabel = e.EstadoEsp == EstadoEspecie.Activo ? "Activo" : e.EstadoEsp == EstadoEspecie.Inactivo ? "Inactivo" : "En revisión";
+                                        var estClass = e.EstadoEsp == EstadoEspecie.Activo ? "b-ok" : e.EstadoEsp == EstadoEspecie.Inactivo ? "b-off" : "b-rev";
+                                        <tr class="specrow" data-cat="@(e.NombreCategoria?.Trim().ToLower())">
+                                            <td>@(idx++)</td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(e.ImagenUrl))
+                                                {
+                                                    <img src="@e.ImagenUrl" class="thumb" alt="@e.NombreComun" />
+                                                }
+                                                else
+                                                {
+
+                                                    <span title="Sin imagen">📷</span>
+                                                }
+                                            </td>
+                                            <td><strong>@e.NombreComun</strong></td>
+                                            <td><em>@e.NombreCientifico</em></td>
+                                            <td><span class="badge b-cat">@e.NombreCategoria</span></td>
+                                            <td><span class="badge @estClass">@estLabel</span></td>
+                                            <td>@(string.IsNullOrWhiteSpace(e.Habitat) ? "—" : e.Habitat)</td>
+                                            <td>@e.FechaRegistroEsp.ToString("dd/MM/yyyy HH:mm")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="note">💡 El alcance seleccionado filtra la tabla y el archivo descargado. Los reportes se generan en tu navegador.</p>
+                    }
+                    else
+                    {
+                        <div class="empty-state"><h2>📊 No hay especies registradas</h2><p>Registra especies en Flora/Fauna para poder generar reportes.</p></div>
+                    }
+                </div>
+            </section>
+        </main>
+    </div>
+
+    @* Datos para exportar (serializados por el servidor). Claves en PascalCase. *@
+    <script>
+            var ALL = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model ?? Enumerable.Empty<EspecieResponse>()));
+    </script>
+
+    @* Librerías de exportación (CDN). Excel = SheetJS, PDF = jsPDF + autoTable *@
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+    <script>
+        function scopeKey()   { return document.getElementById('scope').value; }
+        function scopeLabel() { return document.getElementById('scope').selectedOptions[0].text; }
+
+        function estadoText(v) {
+        switch (Number(v)) { case 1: return 'Activo'; case 2: return 'Inactivo'; case 3: return 'En revisión'; default: return ''; }
+        }
+        function fmtFecha(s) {
+        if (!s) return '';
+        return String(s).replace('T', ' ').substring(0, 16);
+        }
+
+        // Filtra la tabla visible según el alcance
+        function aplicarFiltro() {
+        var key = scopeKey();
+        var rows = document.querySelectorAll('.specrow');
+        var visibles = 0;
+        rows.forEach(function (r) {
+        var match = (key === 'todos') || (r.dataset.cat === key);
+        r.style.display = match ? '' : 'none';
+        if (match) visibles++;
+        });
+        document.getElementById('contador').textContent = visibles + ' especie(s) en el reporte';
+        }
+
+        // Filtra el array de datos para exportar
+        function filasActuales() {
+        var key = scopeKey();
+        var lista = (ALL || []).filter(function (e) {
+        var cat = (e.NombreCategoria || '').trim().toLowerCase();
+        return (key === 'todos') || (cat === key);
+        });
+        return lista;
+        }
+
+        function exportarExcel() {
+        if (typeof XLSX === 'undefined') { alert('No se pudo cargar la librería de Excel (revisa tu conexión a internet).'); return; }
+        var data = filasActuales().map(function (e) {
+        return {
+        'ID': e.IdEspecie,
+        'Nombre común': e.NombreComun,
+        'Nombre científico': e.NombreCientifico,
+        'Categoría': e.NombreCategoria,
+        'Estado': estadoText(e.EstadoEsp),
+        'Hábitat': e.Habitat || '',
+        'Descripción': e.Descripcion || '',
+        'Imagen (URL)': e.ImagenUrl || '',
+        'Fecha registro': fmtFecha(e.FechaRegistroEsp)
+        };
+        });
+        var ws = XLSX.utils.json_to_sheet(data);
+        ws['!cols'] = [{ wch: 12 }, { wch: 22 }, { wch: 26 }, { wch: 12 }, { wch: 12 }, { wch: 30 }, { wch: 40 }, { wch: 50 }, { wch: 18 }];
+        var wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
+        XLSX.writeFile(wb, 'inventario-especies-' + scopeKey() + '.xlsx');
+        }
+
+        function exportarPDF() {
+        if (!window.jspdf || !window.jspdf.jsPDF) { alert('No se pudo cargar la librería de PDF (revisa tu conexión a internet).'); return; }
+        var jsPDF = window.jspdf.jsPDF;
+        var doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+
+        doc.setFontSize(15);
+        doc.text('Inventario de Especies - Smart Biodiversity', 40, 32);
+        doc.setFontSize(11);
+        doc.setTextColor(90);
+        doc.text('Alcance: ' + scopeLabel() + '    |    Generado: ' + fmtFecha(new Date().toISOString()), 40, 48);
+        doc.setTextColor(0);
+
+        var rows = filasActuales().map(function (e) {
+        return [
+        e.NombreComun || '',
+        e.NombreCientifico || '',
+        e.NombreCategoria || '',
+        estadoText(e.EstadoEsp),
+        e.Habitat || '',
+        fmtFecha(e.FechaRegistroEsp)
+        ];
+        });
+
+        doc.autoTable({
+        startY: 60,
+        head: [['Nombre común', 'Nombre científico', 'Categoría', 'Estado', 'Hábitat', 'Fecha registro']],
+        body: rows,
+        styles: { font: 'helvetica', fontSize: 8, cellPadding: 4, overflow: 'linebreak' },
+        headStyles: { fillColor: [34, 197, 94], textColor: 255, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [245, 247, 250] },
+        columnStyles: { 4: { cellWidth: 150 } }
+        });
+
+        doc.save('inventario-especies-' + scopeKey() + '.pdf');
+        }
+
+        aplicarFiltro();
+    </script>
+</body>
+</html>

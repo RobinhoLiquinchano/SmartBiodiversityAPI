@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using SmartBiodiversityUtnMVC.Services;
 using SmartBiodiversityUtnModels.DTOs;                 // CreateEspecieRequest
+using SmartBiodiversityUtnModels.DTOs.Account;         // UserListResponse
 using SmartBiodiversityUtnModels.DTOs.Categoria;       // CategoriaResponse
 using SmartBiodiversityUtnModels.DTOs.Especie;         // EspecieResponse, UpdateEspecieRequest
 
@@ -28,6 +29,30 @@ namespace SmartBiodiversityUtnMVC.Controllers
         }
 
         // =====================================================================
+        //  USUARIOS (solo lista, trae la API con rol Administrador)
+        // =====================================================================
+        [HttpGet]
+        public async Task<IActionResult> Usuarios()
+        {
+            var usuarios = await _apiClient.GetAsync<IEnumerable<UserListResponse>>("api/Users/listar-todos")
+                           ?? Enumerable.Empty<UserListResponse>();
+
+            return View(usuarios.ToList());
+        }
+
+        // =====================================================================
+        //  REPORTES (inventario descargable en Excel / PDF)
+        // =====================================================================
+        [HttpGet]
+        public async Task<IActionResult> Reportes()
+        {
+            var especies = await _apiClient.GetAsync<IEnumerable<EspecieResponse>>("api/Especies")
+                           ?? Enumerable.Empty<EspecieResponse>();
+
+            return View(especies.ToList());
+        }
+
+        // =====================================================================
         //  HELPERS
         // =====================================================================
         private async Task<string?> IdCategoriaAsync(string nombre)
@@ -39,18 +64,11 @@ namespace SmartBiodiversityUtnMVC.Controllers
                 string.Equals(c.Nombre?.Trim(), nombre, StringComparison.OrdinalIgnoreCase))?.Id;
         }
 
-        /// <summary>
-        /// Sube la imagen a la API justo después de crear/editar la especie.
-        /// Devuelve (ok, error): ok=true si no había imagen o si se subió bien.
-        /// NOTA: un método async NO puede usar 'out', por eso se devuelve tupla.
-        /// </summary>
         private async Task<(bool ok, string? error)> TrySubirImagen(string especieId, IFormFile? archivo)
         {
-            // Si no vino archivo, no es un error: simplemente no se sube nada.
             if (archivo == null || archivo.Length == 0)
                 return (true, null);
 
-            // Validación ligera de tipo
             if (!string.IsNullOrEmpty(archivo.ContentType) &&
                 !archivo.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
             {
@@ -60,7 +78,7 @@ namespace SmartBiodiversityUtnMVC.Controllers
             var ok = await _apiClient.PostMultipartAsync(
                 "api/Multimedias",
                 archivo,
-                "Archivo",   // nombre del campo que espera la API (CreateMultimediaRequest.Archivo)
+                "Archivo",
                 new[]
                 {
                     new KeyValuePair<string, string>("EspecieId", especieId),
@@ -115,7 +133,6 @@ namespace SmartBiodiversityUtnMVC.Controllers
                 return RedirectToAction(nameof(Flora));
             }
 
-            // La especie ya existe → ahora sí subimos la imagen con su Id
             var conImagen = archivo != null && archivo.Length > 0;
             var (imgOk, imgErr) = await TrySubirImagen(creado.IdEspecie, archivo);
 
