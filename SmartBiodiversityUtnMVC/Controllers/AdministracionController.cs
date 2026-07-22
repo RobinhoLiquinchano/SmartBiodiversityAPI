@@ -17,9 +17,17 @@ namespace SmartBiodiversityUtnMVC.Controllers
             _apiClient = apiClient;
         }
 
-        public IActionResult Index()
+        [HttpGet]
+        public async Task<IActionResult> Index()
         {
-            return View();
+            var especies = (await _apiClient.GetAsync<IEnumerable<EspecieResponse>>("api/Especies")
+                            ?? Enumerable.Empty<EspecieResponse>()).ToList();
+
+            // Ids de Flora y Fauna para el selector del modal de registro rápido
+            ViewBag.FloraId = await IdCategoriaAsync("Flora");
+            ViewBag.FaunaId = await IdCategoriaAsync("Fauna");
+
+            return View(especies);
         }
 
         [HttpGet]
@@ -53,6 +61,92 @@ namespace SmartBiodiversityUtnMVC.Controllers
         }
 
         // =====================================================================
+        //  REGISTRO / EDICIÓN / ELIMINACIÓN desde el DASHBOARD (Index)
+        //  (el usuario elige Flora o Fauna en el modal; redirige de vuelta a Index)
+        // =====================================================================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EspecieCreate(CreateEspecieRequest request, IFormFile? archivo)
+        {
+            if (string.IsNullOrWhiteSpace(request?.NombreComun) ||
+                string.IsNullOrWhiteSpace(request?.NombreCientifico) ||
+                string.IsNullOrWhiteSpace(request?.CategoriaId))
+            {
+                TempData["IndexError"] = "Nombre común, nombre científico y categoría (Flora/Fauna) son obligatorios.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Solo permitimos Flora o Fauna desde el dashboard
+            var floraId = await IdCategoriaAsync("Flora");
+            var faunaId = await IdCategoriaAsync("Fauna");
+            if (request.CategoriaId != floraId && request.CategoriaId != faunaId)
+            {
+                TempData["IndexError"] = "Categoría inválida (debe ser Flora o Fauna).";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var creado = await _apiClient.PostAsync<CreateEspecieRequest, EspecieResponse>("api/Especies", request);
+            if (creado == null)
+            {
+                TempData["IndexError"] = "No se pudo registrar la especie. Verifica que tu sesión sea de Administrador.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var conImagen = archivo != null && archivo.Length > 0;
+            var (imgOk, imgErr) = await TrySubirImagen(creado.IdEspecie, archivo);
+
+            TempData["IndexOk"] = imgOk
+                ? $"Especie '{creado.NombreComun}' registrada" + (conImagen ? " con imagen" : "") + "."
+                : $"Especie '{creado.NombreComun}' registrada, pero la imagen no se subió.";
+            if (!imgOk) TempData["IndexError"] = imgErr;
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EspecieEdit(string id, UpdateEspecieRequest request, IFormFile? archivo)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                TempData["IndexError"] = "ID de especie inválido.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var ok = await _apiClient.PutAsync<UpdateEspecieRequest>($"api/Especies/{id}", request);
+            if (!ok)
+            {
+                TempData["IndexError"] = "No se pudo actualizar la especie. Verifica tu sesión de Administrador.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var (imgOk, imgErr) = await TrySubirImagen(id, archivo);
+            TempData["IndexOk"] = imgOk
+                ? "Especie actualizada" + (archivo != null && archivo.Length > 0 ? " (imagen agregada)" : "") + "."
+                : "Especie actualizada, pero la imagen no se subió.";
+            if (!imgOk) TempData["IndexError"] = imgErr;
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EspecieDelete(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                TempData["IndexError"] = "ID de especie inválido.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var ok = await _apiClient.DeleteAsync($"api/Especies/{id}");
+            if (ok) TempData["IndexOk"] = "Especie eliminada correctamente.";
+            else TempData["IndexError"] = "No se pudo eliminar la especie. Verifica tu sesión de Administrador.";
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        // =====================================================================
         //  HELPERS
         // =====================================================================
         private async Task<string?> IdCategoriaAsync(string nombre)
@@ -64,6 +158,11 @@ namespace SmartBiodiversityUtnMVC.Controllers
                 string.Equals(c.Nombre?.Trim(), nombre, StringComparison.OrdinalIgnoreCase))?.Id;
         }
 
+        /// <summary>
+        /// Sube la imagen a la API justo después de crear/editar la especie.
+        /// Devuelve (ok, error): ok=true si no había imagen o si se subió bien.
+        /// NOTA: un método async NO puede usar 'out', por eso se devuelve tupla.
+        /// </summary>
         private async Task<(bool ok, string? error)> TrySubirImagen(string especieId, IFormFile? archivo)
         {
             if (archivo == null || archivo.Length == 0)

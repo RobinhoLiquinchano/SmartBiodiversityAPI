@@ -1,0 +1,81 @@
+﻿@* =====================================================================
+   PANEL LATERAL COMPARTIDO (Administración)
+   - Idéntico en TODAS las vistas (se inyecta con: @await Html.PartialAsync("_AdminSidebar"))
+   - FIJO: no se mueve al hacer scroll (position: fixed).
+   - El ítem activo se calcula solo según la acción actual.
+   - "Taxonomía" fue reemplazado por "Avisos".
+   ===================================================================== *@
+@{
+    var __sbAct = (ViewContext.RouteData.Values["action"] ?? string.Empty).ToString();
+}
+
+<style>
+    /* === Carcasa del panel: FIJA e idéntica (sobreescribe el grid de cada vista) === */
+    .dashboard {
+        display: block !important;
+    }
+
+    aside.sidebar {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 260px !important;
+        height: 100vh !important;
+        overflow-y: auto !important;
+        z-index: 50 !important;
+    }
+
+    .main {
+        margin-left: 260px !important;
+        width: auto !important;
+    }
+
+    @@media (max-width: 900px) {
+        aside.sidebar {
+            display: none !important;
+        }
+
+        .main {
+            margin-left: 0 !important;
+        }
+    }
+</style>
+
+<aside class="sidebar">
+    <div class="logo">
+        <div class="logo-icon">🌱</div>
+        <div class="logo-text">Smart <span>Biodiversity</span></div>
+    </div>
+
+    <p class="menu-title">MENÚ</p>
+
+    <nav class="menu">
+        <a asp-controller="Administracion" asp-action="Index"
+           class="menu-item @(__sbAct == "Index" ? "active" : "")">▦ Dashboard</a>
+
+        <a asp-controller="Administracion" asp-action="InventarioEspecies"
+           class="menu-item @(__sbAct == "InventarioEspecies" || __sbAct == "Fauna" || __sbAct == "Flora" ? "active" : "")">🌿 Inventario Especies</a>
+
+        <a href="#" class="menu-item">📢 Avisos</a>
+
+        <a href="#" class="menu-item">🗺️ Mapa Campus</a>
+
+        <a href="#" class="menu-item">✅ Validaciones</a>
+
+        <a asp-controller="Administracion" asp-action="Usuarios"
+           class="menu-item @(__sbAct == "Usuarios" ? "active" : "")">👥 Usuarios</a>
+
+        <a asp-controller="Administracion" asp-action="Reportes"
+           class="menu-item @(__sbAct == "Reportes" ? "active" : "")">📊 Reportes</a>
+
+        <a href="#" class="menu-item">⚙️ Configuración</a>
+    </nav>
+
+    <div class="profile">
+        <div class="avatar">A</div>
+        <div class="profile-info">
+            <strong>Perfil</strong>
+            <span>Administrador Principal</span>
+        </div>
+    </div>
+</aside>

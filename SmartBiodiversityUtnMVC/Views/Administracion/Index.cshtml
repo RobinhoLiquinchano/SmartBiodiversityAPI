@@ -397,27 +397,7 @@
 
 <body>
     <div class="dashboard">
-        <aside class="sidebar">
-            <div class="logo">
-                <div class="logo-icon">🌱</div>
-                <div class="logo-text">Smart <span>Biodiversity</span></div>
-            </div>
-            <p class="menu-title">MENÚ</p>
-            <nav class="menu">
-                <a asp-controller="Administracion" asp-action="Index" class="menu-item">▦ Dashboard</a>
-                <a asp-controller="Administracion" asp-action="InventarioEspecies" class="menu-item">🌿 Inventario Especies</a>
-                <a href="#" class="menu-item">🔬 Taxonomía</a>
-                <a href="#" class="menu-item">🗺️ Mapa Campus</a>
-                <a href="#" class="menu-item">✅ Validaciones</a>
-                <a asp-controller="Administracion" asp-action="Usuarios" class="menu-item">👥 Usuarios</a>
-                <a asp-controller="Administracion" asp-action="Reportes" class="menu-item">📊 Reportes</a>
-                <a href="#" class="menu-item">⚙️ Configuración</a>
-            </nav>
-            <div class="profile">
-                <div class="avatar">A</div>
-                <div class="profile-info"><strong>Perfil</strong><span>Administrador Principal</span></div>
-            </div>
-        </aside>
+        @await Html.PartialAsync("_AdminSidebar")
 
         <main class="main">
             <header class="topbar">
@@ -435,45 +415,96 @@
                     <p>Campus: El Olivo</p>
                 </div>
 
+                @if (TempData["IndexOk"] is string _ok)
+                {
+                    <div class="sb-alert sb-ok">✅ @_ok</div>
+                }
+                @if (TempData["IndexError"] is string _err)
+                {
+                    <div class="sb-alert sb-err">⚠️ @_err</div>
+                }
+
+                @{
+                    var _lista = Model ?? Enumerable.Empty<SmartBiodiversityUtnModels.DTOs.Especie.EspecieResponse>();
+                    var _total = _lista.Count();
+                    var _flora = _lista.Count(e => string.Equals(e.NombreCategoria?.Trim(), "Flora", StringComparison.OrdinalIgnoreCase));
+                    var _fauna = _lista.Count(e => string.Equals(e.NombreCategoria?.Trim(), "Fauna", StringComparison.OrdinalIgnoreCase));
+                    var _limite = DateTime.SpecifyKind(DateTime.UtcNow.AddDays(-7), DateTimeKind.Unspecified);
+                    var _nuevos = _lista.Count(e => e.FechaRegistroEsp >= _limite);
+                    var _recientes = _lista.OrderByDescending(e => e.FechaRegistroEsp).ToList();
+                }
+
                 <section class="kpi-grid">
-                    <article class="kpi-card"><div class="kpi-icon">🌳</div><div><div class="kpi-title">Total Especies</div><div class="kpi-value" id="kpi-total">0</div></div></article>
-                    <article class="kpi-card"><div class="kpi-icon">🔭</div><div><div class="kpi-title">Pendientes</div><div class="kpi-value" id="kpi-pendientes">0</div></div></article>
-                    <article class="kpi-card"><div class="kpi-icon">🔬</div><div><div class="kpi-title">Nuevos</div><div class="kpi-value" id="kpi-nuevos">0</div></div></article>
-                    <article class="kpi-card"><div class="kpi-icon">🌐</div><div><div class="kpi-title">Reportes</div><div class="kpi-value" id="kpi-reportes">8</div></div></article>
+                    <article class="kpi-card"><div class="kpi-icon">🌳</div><div><div class="kpi-title">Total Especies</div><div class="kpi-value">@_total</div></div></article>
+                    <article class="kpi-card"><div class="kpi-icon">🌸</div><div><div class="kpi-title">Flora</div><div class="kpi-value">@_flora</div></div></article>
+                    <article class="kpi-card"><div class="kpi-icon">🦋</div><div><div class="kpi-title">Fauna</div><div class="kpi-value">@_fauna</div></div></article>
+                    <article class="kpi-card"><div class="kpi-icon">✨</div><div><div class="kpi-title">Nuevos (7 días)</div><div class="kpi-value">+@_nuevos</div></div></article>
                 </section>
 
                 <section class="main-grid">
                     <article class="card">
                         <div class="card-header">
-                            <div><h2>Inventario</h2><p>Registro de especies del campus</p></div>
+                            <div><h2>Inventario</h2><p>Todas las especies registradas (más recientes primero)</p></div>
                             <div class="inventory-tools"></div>
                         </div>
                         <div class="table-wrap">
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>ID</th>
-                                        <th>Nombre Común</th>
-                                        <th>Nombre Científico</th>
-                                        <th>Taxonomía</th>
-                                        <th>Fisiología</th>
-                                        <th>Ubicación</th>
+                                        <th>Foto</th>
+                                        <th>Nombre común</th>
+                                        <th>Nombre científico</th>
+                                        <th>Categoría</th>
+                                        <th>Hábitat</th>
                                         <th>Estado</th>
+                                        <th>Fecha registro</th>
+                                        <th style="text-align:right">Acciones</th>
                                     </tr>
                                 </thead>
-                                <tbody id="tabla-inventario">
-                                    @if (Model != null)
+                                <tbody>
+                                    @if (_recientes.Any())
                                     {
-                                        @foreach (var item in Model)
+                                        foreach (var e in _recientes)
                                         {
+                                            var estLabel = e.EstadoEsp == SmartBiodiversityUtnModels.DTOs.EstadoEspecie.Activo ? "Activo"
+                                                         : e.EstadoEsp == SmartBiodiversityUtnModels.DTOs.EstadoEspecie.Inactivo ? "Inactivo" : "En revisión";
+                                            var estPill = e.EstadoEsp == SmartBiodiversityUtnModels.DTOs.EstadoEspecie.Activo ? "sb-pill-ok"
+                                                        : e.EstadoEsp == SmartBiodiversityUtnModels.DTOs.EstadoEspecie.Inactivo ? "sb-pill-off" : "sb-pill-rev";
                                             <tr>
-                                                <td>@item.IdEspecie</td>
-                                                <td>@item.NombreComun</td>
-                                                <td>@item.NombreCientifico</td>
-                                                <td>@item.Habitat</td>
-                                                <td><span class="status">@item.EstadoEsp</span></td>
+                                                <td>
+                                                    @if (!string.IsNullOrEmpty(e.ImagenUrl))
+                                                    {
+                                                        <img src="@e.ImagenUrl" class="sb-thumb" alt="@e.NombreComun" onclick="openLightbox(this.src)" style="cursor:zoom-in" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="sb-noimg" title="Sin imagen">📷</span>
+                                                    }
+                                                </td>
+                                                <td><strong>@e.NombreComun</strong></td>
+                                                <td><em>@e.NombreCientifico</em></td>
+                                                <td><span class="sb-pill sb-pill-cat">@e.NombreCategoria</span></td>
+                                                <td>@(string.IsNullOrWhiteSpace(e.Habitat) ? "—" : e.Habitat)</td>
+                                                <td><span class="sb-pill @estPill">@estLabel</span></td>
+                                                <td>@e.FechaRegistroEsp.ToString("dd/MM/yyyy HH:mm")</td>
+                                                <td style="text-align:right; white-space:nowrap">
+                                                    <button type="button" class="sb-btn sb-edit" onclick="openEdit(this)"
+                                                            data-id="@e.IdEspecie" data-nombre="@e.NombreComun" data-cientifico="@e.NombreCientifico"
+                                                            data-desc="@e.Descripcion" data-habitat="@e.Habitat" data-estado="@((int)e.EstadoEsp)" title="Editar">
+                                                        ✏️
+                                                    </button>
+                                                    <form asp-controller="Administracion" asp-action="EspecieDelete" method="post" style="display:inline"
+                                                          onsubmit="return confirm('¿Eliminar esta especie? Esta acción no se puede deshacer.');">
+                                                        <input type="hidden" name="id" value="@e.IdEspecie" />
+                                                        <button type="submit" class="sb-btn sb-del" title="Eliminar">🗑️</button>
+                                                    </form>
+                                                </td>
                                             </tr>
                                         }
+                                    }
+                                    else
+                                    {
+                                        <tr><td colspan="8" style="text-align:center; color:var(--muted); padding:28px">Aún no hay especies registradas. Usa “Nuevo Registro”.</td></tr>
                                     }
                                 </tbody>
                             </table>
@@ -483,11 +514,13 @@
                     <aside class="card quick-actions">
                         <h2>Acciones rápidas</h2>
                         <div class="action-list">
-                            <button class="action-btn primary" onclick="document.getElementById('modalRegistro').showModal()">
+                            <button type="button" class="action-btn primary" onclick="openCreate()">
                                 <span class="action-icon">+</span> Nuevo Registro
                             </button>
-                            <button class="action-btn"><span class="action-icon">📊</span> Generar Reporte</button>
-                            <button class="action-btn"><span class="action-icon">🗺️</span> Ver Mapa Campus</button>
+                            <a asp-controller="Administracion" asp-action="Reportes" class="action-btn">
+                                <span class="action-icon">📊</span> Generar Reporte
+                            </a>
+                            <a href="#" class="action-btn"><span class="action-icon">🗺️</span> Ver Mapa Campus</a>
                         </div>
                     </aside>
                 </section>
@@ -495,84 +528,261 @@
         </main>
     </div>
 
-    <dialog id="modalRegistro" style="border-radius: var(--radius); border: 1px solid var(--border); padding: 24px; box-shadow: var(--shadow); width: 450px; background: var(--card);">
-        <h2 style="margin-top: 0; color: var(--text);">Registrar Nueva Especie</h2>
-        <form id="formRegistro">
-            <div style="display: flex; flex-direction: column; gap: 15px;">
-                <div>
-                    <label style="font-size: 14px; color: var(--muted); font-weight: bold;">Nombre Común</label>
-                    <input type="text" id="nombreComun" class="modal-input" required>
-                </div>
-                <div>
-                    <label style="font-size: 14px; color: var(--muted); font-weight: bold;">Descripción</label>
-                    <textarea id="descripcion" class="modal-input" required style="resize: vertical; min-height: 80px;"></textarea>
-                </div>
-                <div>
-                    <label style="font-size: 14px; color: var(--muted); font-weight: bold;">Categoría ID</label>
-                    <input type="number" id="categoriaId" class="modal-input" required>
-                </div>
-                <div id="errorMsg" style="color: var(--danger); font-size: 13px; display: none;"></div>
-                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
-                    <button type="button" onclick="document.getElementById('modalRegistro').close()" style="padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border); background: white; cursor: pointer; color: var(--text);">Cancelar</button>
-                    <button type="submit" style="background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: bold;">Guardar Registro</button>
-                </div>
-            </div>
-        </form>
-    </dialog>
-
-    <script>
-            function actualizarKPIs() {
-                const filas = document.querySelectorAll('#tabla-inventario tr');
-                let total = 0;
-                let pendientes = 0;
-                let nuevos = 0;
-
-                filas.forEach(fila => {
-                    total++;
-                    const estadoEl = fila.querySelector('.status');
-                    const estado = estadoEl ? estadoEl.textContent.trim().toLowerCase() : '';
-                    if (estado === 'pendiente') pendientes++;
-                    if (estado === 'nuevo') nuevos++;
-                });
-
-                document.getElementById('kpi-total').textContent = total;
-                document.getElementById('kpi-pendientes').textContent = pendientes;
-                document.getElementById('kpi-nuevos').textContent = '+' + nuevos;
+    <style>
+            .sb-alert {
+                padding: 14px 18px;
+                border-radius: 12px;
+                margin-bottom: 18px;
+                font-weight: bold;
             }
 
-            document.addEventListener('DOMContentLoaded', actualizarKPIs);
+            .sb-ok {
+                background: #dcfce7;
+                color: #166534;
+                border: 1px solid #86efac;
+            }
 
-            document.getElementById('formRegistro').addEventListener('submit', function (e) {
-                e.preventDefault();
-                const errorBox = document.getElementById('errorMsg');
-                errorBox.style.display = 'none';
+            .sb-err {
+                background: #fee2e2;
+                color: #991b1b;
+                border: 1px solid #fca5a5;
+            }
 
-                const formData = new FormData();
-                formData.append('NombreComun', document.getElementById('nombreComun').value);
-                formData.append('Descripcion', document.getElementById('descripcion').value);
-                formData.append('CategoriaId', document.getElementById('categoriaId').value);
+            .sb-thumb {
+                width: 46px;
+                height: 46px;
+                object-fit: cover;
+                border-radius: 8px;
+                border: 1px solid var(--border);
+                display: block;
+            }
 
-                fetch('/Especies/RegistrarAjax', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(async response => {
-                    if (response.ok) {
-                        document.getElementById('modalRegistro').close();
-                        document.getElementById('formRegistro').reset();
-                        location.reload();
-                    } else {
-                        const errorData = await response.text();
-                        errorBox.textContent = `No se pudo registrar: ${errorData}`;
-                        errorBox.style.display = 'block';
+            .sb-noimg {
+                font-size: 20px;
+            }
+
+            .sb-pill {
+                display: inline-block;
+                padding: 4px 10px;
+                border-radius: 999px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+
+            .sb-pill-ok {
+                background: #dcfce7;
+                color: #166534;
+            }
+
+            .sb-pill-off {
+                background: #e5e7eb;
+                color: #374151;
+            }
+
+            .sb-pill-rev {
+                background: #fef9c3;
+                color: #854d0e;
+            }
+
+            .sb-pill-cat {
+                background: #dbeafe;
+                color: #1d4ed8;
+            }
+
+            .sb-btn {
+                border: none;
+                cursor: pointer;
+                font: inherit;
+                font-weight: bold;
+                border-radius: 8px;
+                padding: 8px 12px;
+            }
+
+            .sb-edit {
+                background: #dbeafe;
+                color: #1d4ed8;
+            }
+
+            .sb-del {
+                background: #fee2e2;
+                color: #b91c1c;
+            }
+
+            .sb-primary {
+                background: var(--primary);
+                color: #fff;
+                padding: 10px 16px;
+            }
+
+            .sb-ghost {
+                background: #e5e7eb;
+                color: #111827;
+                padding: 10px 16px;
+            }
+
+            .sb-modal {
+                position: fixed;
+                inset: 0;
+                background: rgba(15,23,42,.55);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+                padding: 16px;
+            }
+
+            .sb-modal-card {
+                background: #fff;
+                border-radius: 16px;
+                padding: 26px;
+                width: 100%;
+                max-width: 520px;
+                box-shadow: 0 20px 50px rgba(0,0,0,.3);
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+
+            .sb-form {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+                .sb-form label {
+                    display: flex;
+                    flex-direction: column;
+                    font-size: 13px;
+                    font-weight: bold;
+                    color: #374151;
+                    gap: 6px;
+                }
+
+                .sb-form input, .sb-form textarea, .sb-form select {
+                    font: inherit;
+                    padding: 10px 12px;
+                    border: 1px solid var(--border);
+                    border-radius: 10px;
+                    background: #f9fafb;
+                    font-weight: normal;
+                }
+
+                    .sb-form input[type="file"] {
+                        background: #fff;
+                        padding: 8px;
                     }
-                })
-                .catch(error => {
-                    console.error('Error de red:', error);
-                    errorBox.textContent = 'Error de conexión con el servidor.';
-                    errorBox.style.display = 'block';
-                });
-            });
+
+            .sb-actions {
+                display: flex;
+                gap: 10px;
+                justify-content: flex-end;
+                margin-top: 6px;
+            }
+
+            .sb-lightbox {
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,.88);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 2000;
+                padding: 20px;
+                cursor: zoom-out;
+            }
+
+                .sb-lightbox img {
+                    max-width: 92vw;
+                    max-height: 92vh;
+                    border-radius: 12px;
+                    box-shadow: 0 20px 60px rgba(0,0,0,.6);
+                }
+
+            a.action-btn {
+                text-decoration: none;
+                color: inherit;
+            }
+    </style>
+
+    @* ===== Modal: REGISTRAR especie (elige Flora o Fauna + imagen) ===== *@
+    <div id="sbCreate" class="sb-modal" style="display:none" onclick="if(event.target===this)closeCreate()">
+        <div class="sb-modal-card">
+            <h2 style="margin-top:0">➕ Registrar nueva especie</h2>
+            <form asp-controller="Administracion" asp-action="EspecieCreate" method="post" enctype="multipart/form-data" class="sb-form">
+                <label>
+                    Categoría *
+                    <select name="CategoriaId" required>
+                        <option value="">-- Selecciona --</option>
+                        @if (ViewBag.FloraId != null)
+                        {
+                            <option value="@ViewBag.FloraId">🌸 Flora</option>
+                        }
+                        @if (ViewBag.FaunaId != null)
+                        {
+                            <option value="@ViewBag.FaunaId">🦋 Fauna</option>
+                        }
+                    </select>
+                </label>
+                <label>Nombre común *<input name="NombreComun" required maxlength="150" placeholder="Ej: Colibrí andino" /></label>
+                <label>Nombre científico *<input name="NombreCientifico" required maxlength="150" placeholder="Ej: Amazilia franciae" /></label>
+                <label>Hábitat<input name="Habitat" maxlength="150" placeholder="Ej: Bosque húmedo" /></label>
+                <label>Imagen (opcional)<input type="file" name="archivo" accept="image/*" /></label>
+                <label>Descripción<textarea name="Descripcion" rows="3" maxlength="1000"></textarea></label>
+                <div class="sb-actions">
+                    <button type="button" class="sb-btn sb-ghost" onclick="closeCreate()">Cancelar</button>
+                    <button type="submit" class="sb-btn sb-primary">🌱 Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @* ===== Modal: EDITAR especie ===== *@
+    <div id="sbEdit" class="sb-modal" style="display:none" onclick="if(event.target===this)closeEdit()">
+        <div class="sb-modal-card">
+            <h2 style="margin-top:0">✏️ Editar especie</h2>
+            <form asp-controller="Administracion" asp-action="EspecieEdit" method="post" enctype="multipart/form-data" class="sb-form">
+                <input type="hidden" id="sbEditId" name="id" />
+                <label>Nombre común *<input id="sbEditNombre" name="NombreComun" required maxlength="150" /></label>
+                <label>Nombre científico *<input id="sbEditCientifico" name="NombreCientifico" required maxlength="150" /></label>
+                <label>Hábitat<input id="sbEditHabitat" name="Habitat" maxlength="150" /></label>
+                <label>
+                    Estado
+                    <select id="sbEditEstado" name="EstadoEsp">
+                        <option value="1">Activo</option>
+                        <option value="2">Inactivo</option>
+                        <option value="3">En revisión</option>
+                    </select>
+                </label>
+                <label>Agregar imagen (opcional)<input type="file" name="archivo" accept="image/*" /></label>
+                <label>Descripción<textarea id="sbEditDesc" name="Descripcion" rows="3" maxlength="1000"></textarea></label>
+                <div class="sb-actions">
+                    <button type="button" class="sb-btn sb-ghost" onclick="closeEdit()">Cancelar</button>
+                    <button type="submit" class="sb-btn sb-primary">💾 Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @* ===== Lightbox ===== *@
+    <div id="sbLightbox" class="sb-lightbox" style="display:none" onclick="closeLightbox()">
+        <img id="sbLightboxImg" src="" alt="Vista ampliada" />
+    </div>
+
+    <script>
+            function openCreate() { document.getElementById('sbCreate').style.display = 'flex'; }
+            function closeCreate() { document.getElementById('sbCreate').style.display = 'none'; }
+            function openEdit(b) {
+                document.getElementById('sbEditId').value = b.dataset.id || '';
+                document.getElementById('sbEditNombre').value = b.dataset.nombre || '';
+                document.getElementById('sbEditCientifico').value = b.dataset.cientifico || '';
+                document.getElementById('sbEditDesc').value = b.dataset.desc || '';
+                document.getElementById('sbEditHabitat').value = b.dataset.habitat || '';
+                document.getElementById('sbEditEstado').value = b.dataset.estado || '1';
+                document.getElementById('sbEdit').style.display = 'flex';
+            }
+            function closeEdit() { document.getElementById('sbEdit').style.display = 'none'; }
+            function openLightbox(s) { document.getElementById('sbLightboxImg').src = s; document.getElementById('sbLightbox').style.display = 'flex'; }
+            function closeLightbox() { document.getElementById('sbLightbox').style.display = 'none'; document.getElementById('sbLightboxImg').src = ''; }
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeCreate(); closeEdit(); closeLightbox(); } });
     </script>
 </body>
 </html>

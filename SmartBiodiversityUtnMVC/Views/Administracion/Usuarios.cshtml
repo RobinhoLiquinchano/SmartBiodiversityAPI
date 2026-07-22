@@ -298,19 +298,7 @@
 </head>
 <body>
     <div class="dashboard">
-        <aside class="sidebar">
-            <div class="logo"><div class="logo-icon">🌱</div><div class="logo-text">Smart <span>Biodiversity</span></div></div>
-            <p class="menu-title">MENÚ</p>
-            <nav class="menu">
-                <a asp-controller="Administracion" asp-action="Index" class="menu-item">▦ Dashboard</a>
-                <a asp-controller="Administracion" asp-action="InventarioEspecies" class="menu-item">🌿 Inventario Especies</a>
-                <a asp-controller="Administracion" asp-action="Usuarios" class="menu-item active">👥 Usuarios</a>
-                <a asp-controller="Administracion" asp-action="Reportes" class="menu-item">📊 Reportes</a>
-                <a href="#" class="menu-item">🔬 Taxonomía</a>
-                <a href="#" class="menu-item">🗺️ Mapa Campus</a>
-            </nav>
-            <div class="profile"><div class="avatar">A</div><div class="profile-info"><strong>Perfil</strong><span>Administrador Principal</span></div></div>
-        </aside>
+        @await Html.PartialAsync("_AdminSidebar")
 
         <main class="main">
             <header class="topbar">
