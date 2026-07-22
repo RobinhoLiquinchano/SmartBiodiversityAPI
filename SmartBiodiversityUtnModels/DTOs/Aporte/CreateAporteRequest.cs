@@ -9,6 +9,8 @@ namespace SmartBiodiversityUtnModels.DTOs.Aporte
     {
         public string TituloApo { get; set; } = string.Empty;
         public string? DescripcionApo { get; set; }
-        public string? RutaArchivoApo { get; set; }
+
+        // NOTA: RutaArchivoApo NO va aquí. La URL la genera el servidor
+        // al subir el archivo a Supabase (carpeta Aportes).
     }
 }

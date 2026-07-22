@@ -3,14 +3,14 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copia los archivos del proyecto y restaura dependencias
-# Asegúrate de que los nombres de las carpetas coincidan exactamente con tu repositorio
-COPY SmartBiodiversityUtn/SmartBiodiversityUtn.csproj SmartBiodiversityUtn/
+# Se incluye el proyecto MVC y el proyecto de Modelos compartido
+COPY SmartBiodiversityUtnMVC/SmartBiodiversityUtnMVC.csproj SmartBiodiversityUtnMVC/
 COPY SmartBiodiversityUtnModels/SmartBiodiversityUtnModels.csproj SmartBiodiversityUtnModels/
-RUN dotnet restore SmartBiodiversityUtn/SmartBiodiversityUtn.csproj
+RUN dotnet restore SmartBiodiversityUtnMVC/SmartBiodiversityUtnMVC.csproj
 
 # Copia el resto del código y publica
 COPY . .
-RUN dotnet publish SmartBiodiversityUtn/SmartBiodiversityUtn.csproj -c Release -o /app/publish --no-restore
+RUN dotnet publish SmartBiodiversityUtnMVC/SmartBiodiversityUtnMVC.csproj -c Release -o /app/publish --no-restore
 
 # Etapa de ejecución
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
@@ -21,4 +21,5 @@ COPY --from=build /app/publish .
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 
-ENTRYPOINT ["dotnet", "SmartBiodiversityUtn.dll"]
+# Nombre del archivo DLL generado correspondiente al proyecto MVC
+ENTRYPOINT ["dotnet", "SmartBiodiversityUtnMVC.dll"]

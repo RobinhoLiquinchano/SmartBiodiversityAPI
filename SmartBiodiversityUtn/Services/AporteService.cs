@@ -29,10 +29,16 @@ namespace SmartBiodiversityUtn.Services
             _httpClient = httpClient;
         }
 
-        public async Task<AporteResponse> CreateAporteAsync(string idUsuario, CreateAporteRequest request)
+        public async Task<AporteResponse> CreateAporteAsync(string idUsuario, CreateAporteRequest request, IFormFile? archivo = null)
         {
             var usuario = await _context.Usuarios.FindAsync(idUsuario);
             if (usuario == null) return null;
+
+            // Si viene archivo, se sube a Supabase/Aportes y su URL pública se guarda en RutaArchivoApo.
+            // Si no viene archivo, RutaArchivoApo queda null (aporte sin imagen).
+            string? rutaArchivo = (archivo != null && archivo.Length > 0)
+                ? await SubirAporteAsync(archivo)
+                : null;
 
             var aporte = new Aporte
             {
@@ -40,7 +46,7 @@ namespace SmartBiodiversityUtn.Services
                 IdUsuarioApo = idUsuario,
                 TituloApo = request.TituloApo,
                 DescripcionApo = request.DescripcionApo,
-                RutaArchivoApo = request.RutaArchivoApo,
+                RutaArchivoApo = rutaArchivo,
                 EstadoApo = EstadoAporte.Pendiente,
                 FechaCreacionApo = DateTime.UtcNow
             };
@@ -57,17 +63,6 @@ namespace SmartBiodiversityUtn.Services
             });
 
             return MapToAporteResponse(aporte, usuario);
-        }
-
-        // Crea un aporte y, si se envía un archivo, lo sube a Supabase (carpeta Aportes)
-        public async Task<AporteResponse> CreateAporteAsync(string idUsuario, CreateAporteRequest request, IFormFile? archivo)
-        {
-            if (archivo != null && archivo.Length > 0)
-            {
-                request.RutaArchivoApo = await SubirAporteAsync(archivo);
-            }
-
-            return await CreateAporteAsync(idUsuario, request);
         }
 
         // Sube el archivo a Supabase dentro de la carpeta "Aportes" y devuelve la URL pública
