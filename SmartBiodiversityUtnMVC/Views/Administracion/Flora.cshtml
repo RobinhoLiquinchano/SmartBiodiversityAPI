@@ -495,9 +495,9 @@
                             <input type="hidden" name="CategoriaId" value="@ViewBag.FloraCategoryId" />
                             <label>Nombre común *<input name="NombreComun" required maxlength="150" placeholder="Ej: Orquídea del campus" /></label>
                             <label>Nombre científico *<input name="NombreCientifico" required maxlength="150" placeholder="Ej: Cyrtochilum retusum" /></label>
-                            <label>Hábitat<input name="Habitat" maxlength="150" placeholder="Ej: Jardín botánico del campus" /></label>
+                            <label>Hábitat<input name="Habitat" required maxlength="150" placeholder="Ej: Jardín botánico del campus" /></label>
                             <label>Imagen (opcional)<input type="file" name="archivo" accept="image/*" /></label>
-                            <label class="full">Descripción<textarea name="Descripcion" rows="6" maxlength="1000" style="min-height:140px; resize:vertical" placeholder="Características, floración, etc."></textarea></label>
+                            <label class="full">Descripción<textarea name="Descripcion" rows="6" required maxlength="1000" style="min-height:140px; resize:vertical" placeholder="Características, floración, etc."></textarea></label>
                             <div class="full actions">
                                 <button type="submit" class="btn btn-primary">🌸 Registrar especie</button>
                             </div>

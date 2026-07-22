@@ -862,9 +862,9 @@
                 </label>
                 <label>Nombre común *<input id="sbCreateNombre" name="NombreComun" required maxlength="150" placeholder="Selecciona una categoría para ver ejemplos" /></label>
                 <label>Nombre científico *<input id="sbCreateCientifico" name="NombreCientifico" required maxlength="150" placeholder="Selecciona una categoría para ver ejemplos" /></label>
-                <label>Hábitat<input id="sbCreateHabitat" name="Habitat" maxlength="150" placeholder="Ej: tipo de hábitat" /></label>
+                <label>Hábitat<input id="sbCreateHabitat" name="Habitat" required maxlength="150" placeholder="Ej: tipo de hábitat" /></label>
                 <label>Imagen (opcional)<input type="file" name="archivo" accept="image/*" /></label>
-                <label>Descripción<textarea name="Descripcion" rows="6" maxlength="1000" style="min-height:140px; resize:vertical"></textarea></label>
+                <label>Descripción<textarea name="Descripcion" rows="6" required maxlength="1000" style="min-height:140px; resize:vertical"></textarea></label>
                 <div class="sb-actions">
                     <button type="button" class="sb-btn sb-ghost" onclick="closeCreate()">Cancelar</button>
                     <button type="submit" class="sb-btn sb-primary">🌱 Guardar</button>
