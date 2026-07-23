@@ -21,9 +21,13 @@ namespace SmartBiodiversityUtn.Data
         public DbSet<Especie> Especies { get; set; } = default!;
         public DbSet<Multimedia> Multimedia { get; set; } = default!;
 
-        // ====== NUEVOS DbSets para Facultades ======
+        // ====== DbSets para Facultades ======
         public DbSet<Facultad> Facultades { get; set; } = default!;
         public DbSet<EspecieFacultad> EspecieFacultades { get; set; } = default!;
+
+        // ====== NUEVO: DbSets para el detalle ampliado de especies ======
+        public DbSet<DetalleFlora> DetallesFlora { get; set; } = default!;
+        public DbSet<DetalleFauna> DetallesFauna { get; set; } = default!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -140,14 +144,14 @@ namespace SmartBiodiversityUtn.Data
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // ========== NUEVO: FACULTADES ==========
+            // ========== FACULTADES ==========
             modelBuilder.Entity<Facultad>(entity =>
             {
                 entity.HasKey(f => f.IdFacultad);
                 entity.HasIndex(f => f.NombreFac).IsUnique();
             });
 
-            // ========== NUEVO: ESPECIE-FACULTAD (tabla intermedia N:M) ==========
+            // ========== ESPECIE-FACULTAD (tabla intermedia N:M) ==========
             modelBuilder.Entity<EspecieFacultad>(entity =>
             {
                 entity.HasKey(ef => ef.IdEspecieFacultad);
@@ -163,6 +167,30 @@ namespace SmartBiodiversityUtn.Data
                 entity.HasOne(ef => ef.Facultad)
                       .WithMany(f => f.EspecieFacultades)
                       .HasForeignKey(ef => ef.IdFacultad)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ========== NUEVO: DETALLE FLORA (1:1 opcional con Especie) ==========
+            modelBuilder.Entity<DetalleFlora>(entity =>
+            {
+                // La PK es la misma FK hacia Especie (relación 1:1 con clave compartida)
+                entity.HasKey(d => d.IdEspecies);
+
+                entity.HasOne(d => d.Especie)
+                      .WithOne(e => e.DetalleFlora)
+                      .HasForeignKey<DetalleFlora>(d => d.IdEspecies)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ========== NUEVO: DETALLE FAUNA (1:1 opcional con Especie) ==========
+            modelBuilder.Entity<DetalleFauna>(entity =>
+            {
+                // La PK es la misma FK hacia Especie (relación 1:1 con clave compartida)
+                entity.HasKey(d => d.IdEspecies);
+
+                entity.HasOne(d => d.Especie)
+                      .WithOne(e => e.DetalleFauna)
+                      .HasForeignKey<DetalleFauna>(d => d.IdEspecies)
                       .OnDelete(DeleteBehavior.Cascade);
             });
         }

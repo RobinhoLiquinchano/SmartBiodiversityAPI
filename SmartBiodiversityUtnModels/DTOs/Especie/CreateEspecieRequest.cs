@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
+using SmartBiodiversityUtnModels.DTOs.Especie;
 
 namespace SmartBiodiversityUtnModels.DTOs
 {
@@ -14,7 +15,13 @@ namespace SmartBiodiversityUtnModels.DTOs
         public string? Habitat { get; set; }
         public string CategoriaId { get; set; } = string.Empty;
 
-        // ====== NUEVO: Facultad a la que se vincula la especie (opcional) ======
+        // ====== Facultad a la que se vincula la especie (opcional) ======
         public string? FacultadId { get; set; }
+
+        // ====== NUEVO: Detalle ampliado opcional ======
+        // Envía solo el que corresponda al tipo de especie (o ninguno).
+        // Si ambos vienen null, la especie se crea sin detalle (comportamiento actual).
+        public DetalleFloraDto? DetalleFlora { get; set; }
+        public DetalleFaunaDto? DetalleFauna { get; set; }
     }
 }

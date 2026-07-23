@@ -45,6 +45,18 @@ namespace SmartBiodiversityUtn.Services
             _context.Especies.Add(newEspecie);
             await _context.SaveChangesAsync();
 
+            // ====== NUEVO: Crear detalle opcional (Flora / Fauna) si viene en la petición ======
+            if (especie.DetalleFlora != null)
+            {
+                _context.DetallesFlora.Add(MapFloraFromDto(newEspecie.IdEspecies, especie.DetalleFlora));
+                await _context.SaveChangesAsync();
+            }
+            if (especie.DetalleFauna != null)
+            {
+                _context.DetallesFauna.Add(MapFaunaFromDto(newEspecie.IdEspecies, especie.DetalleFauna));
+                await _context.SaveChangesAsync();
+            }
+
             // ====== Vincular la especie con la facultad si se proporciona ======
             string? nombreFacultad = null;
             string? idFacultad = null;
@@ -75,7 +87,11 @@ namespace SmartBiodiversityUtn.Services
                 $"Creó la especie: {especie.NombreComun}" +
                 (nombreFacultad != null ? $" en {nombreFacultad}" : ""));
 
-            return MapToResponse(newEspecie, categoria?.NombreCat ?? "Sin categoría", null, nombreFacultad, idFacultad);
+            // En la respuesta de creación incluimos el detalle recién creado (si lo hubo).
+            var resp = MapToResponse(newEspecie, categoria?.NombreCat ?? "Sin categoría", null, nombreFacultad, idFacultad);
+            resp.DetalleFlora = especie.DetalleFlora;
+            resp.DetalleFauna = especie.DetalleFauna;
+            return resp;
         }
 
         public async Task<bool> UpdateEspecieAsync(string id, UpdateEspecieRequest especie, string idUsuario)
@@ -106,7 +122,7 @@ namespace SmartBiodiversityUtn.Services
             existing.EstadoEsp = especie.EstadoEsp ?? existing.EstadoEsp;
             existing.IdCategoriaEsp = especie.IdCategoria ?? existing.IdCategoriaEsp;
 
-            // ====== NUEVO: Manejar cambio de facultad ======
+            // ====== Manejar cambio de facultad ======
             if (especie.FacultadId != null) // Se envió el campo (puede ser vacío para desvincular)
             {
                 // Buscar enlace actual
@@ -150,6 +166,34 @@ namespace SmartBiodiversityUtn.Services
                 }
             }
 
+            // ====== NUEVO: Upsert del detalle Flora (solo si viene en la petición) ======
+            if (especie.DetalleFlora != null)
+            {
+                var floraActual = await _context.DetallesFlora.FirstOrDefaultAsync(d => d.IdEspecies == id);
+                if (floraActual == null)
+                {
+                    _context.DetallesFlora.Add(MapFloraFromDto(id, especie.DetalleFlora));
+                }
+                else
+                {
+                    CopyFloraFromDto(floraActual, especie.DetalleFlora);
+                }
+            }
+
+            // ====== NUEVO: Upsert del detalle Fauna (solo si viene en la petición) ======
+            if (especie.DetalleFauna != null)
+            {
+                var faunaActual = await _context.DetallesFauna.FirstOrDefaultAsync(d => d.IdEspecies == id);
+                if (faunaActual == null)
+                {
+                    _context.DetallesFauna.Add(MapFaunaFromDto(id, especie.DetalleFauna));
+                }
+                else
+                {
+                    CopyFaunaFromDto(faunaActual, especie.DetalleFauna);
+                }
+            }
+
             _context.Especies.Update(existing);
             var result = await _context.SaveChangesAsync() > 0;
 
@@ -173,6 +217,14 @@ namespace SmartBiodiversityUtn.Services
                 .ToListAsync();
             if (enlaces.Count > 0)
                 _context.EspecieFacultades.RemoveRange(enlaces);
+
+            // El detalle Flora/Fauna se elimina en cascada por la FK,
+            // pero lo removemos explícitamente por claridad y compatibilidad.
+            var flora = await _context.DetallesFlora.FirstOrDefaultAsync(d => d.IdEspecies == id);
+            if (flora != null) _context.DetallesFlora.Remove(flora);
+
+            var fauna = await _context.DetallesFauna.FirstOrDefaultAsync(d => d.IdEspecies == id);
+            if (fauna != null) _context.DetallesFauna.Remove(fauna);
 
             var nombre = especie.NombreComunEsp;
             _context.Especies.Remove(especie);
@@ -200,6 +252,9 @@ namespace SmartBiodiversityUtn.Services
         // ==================== Métodos de lectura ====================
         public async Task<IEnumerable<EspecieResponse>> GetAllEspeciesAsync()
         {
+            // IMPORTANTE: el listado NO incluye ni expone el detalle ampliado.
+            // Se mantiene idéntico al comportamiento previo para no afectar a
+            // los consumidores del controlador de especies.
             var especies = await _context.Especies
                 .Include(e => e.Categoria)
                 .Include(e => e.EspecieFacultades)
@@ -228,6 +283,8 @@ namespace SmartBiodiversityUtn.Services
                 .Include(e => e.Categoria)
                 .Include(e => e.EspecieFacultades)
                     .ThenInclude(ef => ef.Facultad)
+                .Include(e => e.DetalleFlora)   // NUEVO: solo en el detalle
+                .Include(e => e.DetalleFauna)   // NUEVO: solo en el detalle
                 .FirstOrDefaultAsync(e => e.IdEspecies == id);
 
             if (especie == null) return null;
@@ -240,12 +297,18 @@ namespace SmartBiodiversityUtn.Services
 
             var primeraFac = especie.EspecieFacultades.FirstOrDefault();
 
-            return MapToResponse(
+            var response = MapToResponse(
                 especie,
                 especie.Categoria?.NombreCat ?? "Sin categoría",
                 url,
                 primeraFac?.Facultad?.NombreFac,
                 primeraFac?.IdFacultad);
+
+            // NUEVO: adjuntar el detalle ampliado (será null si no existe).
+            response.DetalleFlora = MapFloraToDto(especie.DetalleFlora);
+            response.DetalleFauna = MapFaunaToDto(especie.DetalleFauna);
+
+            return response;
         }
 
         private async Task<Dictionary<string, string>> MapaImagenesPorEspecieAsync()
@@ -281,6 +344,77 @@ namespace SmartBiodiversityUtn.Services
                 ImagenUrl = imagenUrl,
                 NombreFacultad = nombreFacultad,
                 IdFacultad = idFacultad
+                // DetalleFlora / DetalleFauna quedan en null salvo que se rellenen aparte.
+            };
+        }
+
+        // ==================== Mapeos de detalle (Entidad <-> DTO) ====================
+
+        private static DetalleFlora MapFloraFromDto(string idEspecie, DetalleFloraDto dto)
+        {
+            var entidad = new DetalleFlora { IdEspecies = idEspecie };
+            CopyFloraFromDto(entidad, dto);
+            return entidad;
+        }
+
+        private static void CopyFloraFromDto(DetalleFlora entidad, DetalleFloraDto dto)
+        {
+            entidad.AlturaPromedioM = dto.AlturaPromedioM;
+            entidad.AlturaMaximaM = dto.AlturaMaximaM;
+            entidad.DiametroTroncoCm = dto.DiametroTroncoCm;
+            entidad.TipoCortezaTronco = dto.TipoCortezaTronco;
+            entidad.FormaCopa = dto.FormaCopa;
+            entidad.TipoHoja = dto.TipoHoja;
+            entidad.ColorFlorFruto = dto.ColorFlorFruto;
+            entidad.HabitoCrecimiento = dto.HabitoCrecimiento;
+        }
+
+        private static DetalleFloraDto? MapFloraToDto(DetalleFlora? entidad)
+        {
+            if (entidad == null) return null;
+            return new DetalleFloraDto
+            {
+                AlturaPromedioM = entidad.AlturaPromedioM,
+                AlturaMaximaM = entidad.AlturaMaximaM,
+                DiametroTroncoCm = entidad.DiametroTroncoCm,
+                TipoCortezaTronco = entidad.TipoCortezaTronco,
+                FormaCopa = entidad.FormaCopa,
+                TipoHoja = entidad.TipoHoja,
+                ColorFlorFruto = entidad.ColorFlorFruto,
+                HabitoCrecimiento = entidad.HabitoCrecimiento
+            };
+        }
+
+        private static DetalleFauna MapFaunaFromDto(string idEspecie, DetalleFaunaDto dto)
+        {
+            var entidad = new DetalleFauna { IdEspecies = idEspecie };
+            CopyFaunaFromDto(entidad, dto);
+            return entidad;
+        }
+
+        private static void CopyFaunaFromDto(DetalleFauna entidad, DetalleFaunaDto dto)
+        {
+            entidad.LongitudPromedioCm = dto.LongitudPromedioCm;
+            entidad.EnvergaduraCm = dto.EnvergaduraCm;
+            entidad.PesoPromedioGramos = dto.PesoPromedioGramos;
+            entidad.TipoPelajePlumaje = dto.TipoPelajePlumaje;
+            entidad.DimorfismoSexual = dto.DimorfismoSexual;
+            entidad.Dieta = dto.Dieta;
+            entidad.PatronActividad = dto.PatronActividad;
+        }
+
+        private static DetalleFaunaDto? MapFaunaToDto(DetalleFauna? entidad)
+        {
+            if (entidad == null) return null;
+            return new DetalleFaunaDto
+            {
+                LongitudPromedioCm = entidad.LongitudPromedioCm,
+                EnvergaduraCm = entidad.EnvergaduraCm,
+                PesoPromedioGramos = entidad.PesoPromedioGramos,
+                TipoPelajePlumaje = entidad.TipoPelajePlumaje,
+                DimorfismoSexual = entidad.DimorfismoSexual,
+                Dieta = entidad.Dieta,
+                PatronActividad = entidad.PatronActividad
             };
         }
     }

@@ -38,7 +38,12 @@ namespace SmartBiodiversityUtnModels.Entities
         public Categoria Categoria { get; set; } = null!;
         public ICollection<Multimedia> MultimediaArchivos { get; set; } = new List<Multimedia>();
 
-        // ====== NUEVO: Relación N:M con Facultades ======
+        // ====== Relación N:M con Facultades ======
         public ICollection<EspecieFacultad> EspecieFacultades { get; set; } = new List<EspecieFacultad>();
+
+        // ====== NUEVO: Detalle opcional 1:1 según tipo (Flora / Fauna) ======
+        // Ambos son nullables: una especie puede no tener ninguno.
+        public DetalleFlora? DetalleFlora { get; set; }
+        public DetalleFauna? DetalleFauna { get; set; }
     }
 }
