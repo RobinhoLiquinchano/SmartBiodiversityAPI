@@ -166,7 +166,8 @@
         <a asp-controller="Administracion" asp-action="Mapa"
            class="menu-item @(__sbAct == "Mapa" ? "active" : "")">🗺️ Mapa Campus</a>
 
-        <a href="#" class="menu-item">✅ Validaciones</a>
+        <a asp-controller="Administracion" asp-action="Validaciones"
+           class="menu-item @(__sbAct == "Validaciones" ? "active" : "")">✅ Validaciones</a>
 
         <a asp-controller="Administracion" asp-action="Usuarios"
            class="menu-item @(__sbAct == "Usuarios" ? "active" : "")">👥 Usuarios</a>
@@ -184,3 +185,6 @@
         </div>
     </div>
 </aside>
+
+
+

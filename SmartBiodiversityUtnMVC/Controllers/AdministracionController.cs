@@ -1,12 +1,13 @@
 ﻿using Microsoft.AspNetCore.Http;
-using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc;
-using SmartBiodiversityUtnMVC.Services;
 using SmartBiodiversityUtnModels.DTOs;                 // CreateEspecieRequest
 using SmartBiodiversityUtnModels.DTOs.Account;         // UserListResponse
+using SmartBiodiversityUtnModels.DTOs.Aporte;
+using SmartBiodiversityUtnModels.DTOs.Aviso;           // AvisoResponse, Create/UpdateAvisoRequest
 using SmartBiodiversityUtnModels.DTOs.Categoria;       // CategoriaResponse
 using SmartBiodiversityUtnModels.DTOs.Especie;         // EspecieResponse, UpdateEspecieRequest
-using SmartBiodiversityUtnModels.DTOs.Aviso;           // AvisoResponse, Create/UpdateAvisoRequest
+using SmartBiodiversityUtnMVC.Services;
+using System.Net.Http.Json;
 
 namespace SmartBiodiversityUtnMVC.Controllers
 {
@@ -516,5 +517,18 @@ namespace SmartBiodiversityUtnMVC.Controllers
         {
             return View();
         }
+
+        // =====================================================================
+        //  VALIDACIONES (Aportes de usuarios)
+        // =====================================================================
+        [HttpGet]
+        public async Task<IActionResult> Validaciones()
+        {
+            var aportes = await _apiClient.GetAsync<IEnumerable<AporteResponse>>("api/Aportes/listar/todos")
+                           ?? Enumerable.Empty<AporteResponse>();
+
+            return View(aportes.OrderByDescending(a => a.FechaCreacionApo).ToList());
+        }
+
     }
 }
