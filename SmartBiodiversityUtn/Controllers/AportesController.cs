@@ -82,8 +82,17 @@ namespace SmartBiodiversityUtn.Controllers
             return Ok(await aporteService.GetAportesByUsuarioAsync(idUsuario));
         }
 
-        [HttpGet("por-estado/{estado}")]
+        // Catálogo público: nunca expone aportes pendientes ni rechazados.
+        [HttpGet("publicos")]
         [AllowAnonymous]
+        public async Task<ActionResult> GetAportesPublicos()
+        {
+            return Ok(await aporteService.GetAportesByEstadoAsync(EstadoAporte.Aprobado));
+        }
+
+        // Consulta administrativa por estado; permite revisar pendientes y rechazados.
+        [HttpGet("por-estado/{estado}")]
+        [Authorize(Roles = "Administrador")]
         public async Task<ActionResult> GetAportesByEstado(EstadoAporte estado)
         {
             return Ok(await aporteService.GetAportesByEstadoAsync(estado));
@@ -134,3 +143,5 @@ namespace SmartBiodiversityUtn.Controllers
         }
     }
 }
+
+

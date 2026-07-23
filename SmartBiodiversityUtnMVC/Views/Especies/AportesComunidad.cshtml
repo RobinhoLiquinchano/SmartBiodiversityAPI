@@ -1,0 +1,116 @@
+﻿@using SmartBiodiversityUtnModels.DTOs.Aporte
+@model IEnumerable<AporteResponse>
+
+@{
+    ViewData["Title"] = "Aportes de la comunidad";
+}
+
+<style>
+    .community-hero {
+        background: linear-gradient(135deg, #065f46, #16a34a);
+        color: white;
+        border-radius: 18px;
+        padding: 2.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .community-card {
+        height: 100%;
+        border: 0;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, .09);
+        transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+        .community-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 14px 28px rgba(15, 23, 42, .14);
+        }
+
+    .community-image, .community-image-placeholder {
+        width: 100%;
+        height: 220px;
+        object-fit: cover;
+        background: #ecfdf5;
+    }
+
+    .community-image-placeholder {
+        display: grid;
+        place-items: center;
+        color: #047857;
+        font-size: 4rem;
+    }
+
+    .community-meta {
+        color: #6b7280;
+        font-size: .9rem;
+    }
+
+    .approved-badge {
+        background: #d1fae5;
+        color: #065f46;
+        border-radius: 999px;
+        font-size: .75rem;
+        font-weight: 700;
+        padding: .35rem .7rem;
+    }
+</style>
+
+<section class="community-hero">
+    <h1 class="display-6 fw-bold">🌿 Aportes de la comunidad</h1>
+    <p class="mb-0 fs-5">
+        Observaciones de biodiversidad revisadas y validadas por el equipo de Smart Biodiversity.
+    </p>
+</section>
+
+@if (Model != null && Model.Any())
+{
+    <div class="row g-4">
+        @foreach (var aporte in Model)
+        {
+            <div class="col-12 col-md-6 col-lg-4">
+                <article class="card community-card">
+                    @if (!string.IsNullOrWhiteSpace(aporte.RutaArchivoApo))
+                    {
+                        <img src="@aporte.RutaArchivoApo"
+                             class="community-image"
+                             alt="Imagen del aporte: @aporte.TituloApo" />
+                    }
+                    else
+                    {
+                        <div class="community-image-placeholder" aria-label="Aporte sin imagen">🌱</div>
+                    }
+
+                    <div class="card-body d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                            <h2 class="h5 card-title mb-0">@aporte.TituloApo</h2>
+                            <span class="approved-badge">VALIDADO</span>
+                        </div>
+
+                        <p class="card-text text-secondary flex-grow-1">
+                            @(string.IsNullOrWhiteSpace(aporte.DescripcionApo)
+                                ? "El autor no añadió una descripción."
+                                : aporte.DescripcionApo)
+                        </p>
+
+                        <div class="community-meta border-top pt-3 mt-2">
+                            <div>👤 @(string.IsNullOrWhiteSpace(aporte.NombreUsuario) ? "Miembro de la comunidad" : aporte.NombreUsuario)</div>
+                            <div class="mt-1">
+                                📅 Validado el @((aporte.FechaAprobacionApo ?? aporte.FechaCreacionApo).ToString("dd/MM/yyyy"))
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="alert alert-light border text-center py-5">
+        <div class="fs-1">🌱</div>
+        <h2 class="h4 mt-3">Aún no hay aportes validados</h2>
+        <p class="text-secondary mb-0">Cuando la comunidad envíe observaciones y sean aprobadas, aparecerán aquí.</p>
+    </div>
+}
