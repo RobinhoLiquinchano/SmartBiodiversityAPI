@@ -18,12 +18,20 @@ namespace SmartBiodiversityUtn.Controllers
         [Authorize(Roles = "Administrador")]
         public async Task<ActionResult<EspecieResponse>> AddEspecie(CreateEspecieRequest especie)
         {
-            var idUsuario = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(idUsuario))
-                return Unauthorized("No se pudo obtener el ID del usuario.");
+            try
+            {
+                var idUsuario = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(idUsuario))
+                    return Unauthorized("No se pudo obtener el ID del usuario.");
 
-            var createdEspecie = await especieService.AddEspecieAsync(especie, idUsuario);
-            return CreatedAtAction(nameof(GetEspecieById), new { id = createdEspecie.IdEspecie }, createdEspecie);
+                var createdEspecie = await especieService.AddEspecieAsync(especie, idUsuario);
+                return CreatedAtAction(nameof(GetEspecieById), new { id = createdEspecie.IdEspecie }, createdEspecie);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Validación de duplicados por nombre científico
+                return Conflict(new { message = ex.Message });
+            }
         }
 
         [HttpGet]
@@ -44,12 +52,20 @@ namespace SmartBiodiversityUtn.Controllers
         [Authorize(Roles = "Administrador")]
         public async Task<ActionResult> UpdateEspecie(string id, UpdateEspecieRequest especie)
         {
-            var idUsuario = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(idUsuario))
-                return Unauthorized("No se pudo obtener el ID del usuario.");
+            try
+            {
+                var idUsuario = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(idUsuario))
+                    return Unauthorized("No se pudo obtener el ID del usuario.");
 
-            var updated = await especieService.UpdateEspecieAsync(id, especie, idUsuario);
-            return updated ? NoContent() : NotFound("No se encontró la especie con el ID proporcionado.");
+                var updated = await especieService.UpdateEspecieAsync(id, especie, idUsuario);
+                return updated ? NoContent() : NotFound("No se encontró la especie con el ID proporcionado.");
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Validación de duplicados por nombre científico
+                return Conflict(new { message = ex.Message });
+            }
         }
 
         // Solo Administradores pueden eliminar

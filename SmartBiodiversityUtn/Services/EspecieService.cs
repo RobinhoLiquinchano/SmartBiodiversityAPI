@@ -20,6 +20,16 @@ namespace SmartBiodiversityUtn.Services
 
         public async Task<EspecieResponse> AddEspecieAsync(CreateEspecieRequest especie, string idUsuario)
         {
+            // ====== VALIDACIÓN: No permitir especies duplicadas por nombre científico ======
+            var existeDuplicado = await _context.Especies
+                .AnyAsync(e => e.NombreCientificoEsp.ToLower().Trim() == especie.NombreCientifico.ToLower().Trim());
+
+            if (existeDuplicado)
+            {
+                throw new InvalidOperationException(
+                    $"Ya existe una especie registrada con el nombre científico '{especie.NombreCientifico}'.");
+            }
+
             var newEspecie = new Especie
             {
                 IdEspecies = "ESP-" + Guid.NewGuid().ToString("N").Substring(0, 6).ToUpper(),
@@ -35,7 +45,7 @@ namespace SmartBiodiversityUtn.Services
             _context.Especies.Add(newEspecie);
             await _context.SaveChangesAsync();
 
-            // ====== NUEVO: Vincular la especie con la facultad si se proporciona ======
+            // ====== Vincular la especie con la facultad si se proporciona ======
             string? nombreFacultad = null;
             string? idFacultad = null;
 
@@ -73,12 +83,72 @@ namespace SmartBiodiversityUtn.Services
             var existing = await _context.Especies.FirstOrDefaultAsync(e => e.IdEspecies == id);
             if (existing == null) return false;
 
+            // ====== VALIDACIÓN: Si cambia el nombre científico, verificar que no exista duplicado ======
+            if (!string.IsNullOrWhiteSpace(especie.NombreCientifico) &&
+                especie.NombreCientifico.ToLower().Trim() != existing.NombreCientificoEsp.ToLower().Trim())
+            {
+                var existeDuplicado = await _context.Especies
+                    .AnyAsync(e => e.IdEspecies != id &&
+                                   e.NombreCientificoEsp.ToLower().Trim() == especie.NombreCientifico.ToLower().Trim());
+
+                if (existeDuplicado)
+                {
+                    throw new InvalidOperationException(
+                        $"Ya existe otra especie registrada con el nombre científico '{especie.NombreCientifico}'.");
+                }
+            }
+
+            // Actualizar campos básicos
             existing.NombreComunEsp = especie.NombreComun ?? existing.NombreComunEsp;
             existing.NombreCientificoEsp = especie.NombreCientifico ?? existing.NombreCientificoEsp;
             existing.DescripcionEsp = especie.Descripcion ?? existing.DescripcionEsp;
             existing.HabitatEsp = especie.Habitat ?? existing.HabitatEsp;
             existing.EstadoEsp = especie.EstadoEsp ?? existing.EstadoEsp;
             existing.IdCategoriaEsp = especie.IdCategoria ?? existing.IdCategoriaEsp;
+
+            // ====== NUEVO: Manejar cambio de facultad ======
+            if (especie.FacultadId != null) // Se envió el campo (puede ser vacío para desvincular)
+            {
+                // Buscar enlace actual
+                var enlaceActual = await _context.EspecieFacultades
+                    .FirstOrDefaultAsync(ef => ef.IdEspecies == id);
+
+                if (string.IsNullOrWhiteSpace(especie.FacultadId))
+                {
+                    // FacultadId vacío → desvincular
+                    if (enlaceActual != null)
+                    {
+                        _context.EspecieFacultades.Remove(enlaceActual);
+                    }
+                }
+                else
+                {
+                    // FacultadId con valor → vincular o cambiar
+                    var facultad = await _context.Facultades.FindAsync(especie.FacultadId);
+                    if (facultad != null)
+                    {
+                        if (enlaceActual == null)
+                        {
+                            // No había enlace → crear nuevo
+                            var nuevoEnlace = new EspecieFacultad
+                            {
+                                IdEspecieFacultad = "EF-" + Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper(),
+                                IdEspecies = id,
+                                IdFacultad = especie.FacultadId,
+                                FechaAsignacion = DateTime.UtcNow
+                            };
+                            _context.EspecieFacultades.Add(nuevoEnlace);
+                        }
+                        else if (enlaceActual.IdFacultad != especie.FacultadId)
+                        {
+                            // Ya había enlace pero diferente facultad → actualizar
+                            enlaceActual.IdFacultad = especie.FacultadId;
+                            enlaceActual.FechaAsignacion = DateTime.UtcNow;
+                        }
+                        // Si es la misma facultad, no hacer nada
+                    }
+                }
+            }
 
             _context.Especies.Update(existing);
             var result = await _context.SaveChangesAsync() > 0;
@@ -97,7 +167,7 @@ namespace SmartBiodiversityUtn.Services
             var especie = await _context.Especies.FirstOrDefaultAsync(e => e.IdEspecies == id);
             if (especie == null) return false;
 
-            // Eliminar también las relaciones con facultades (cascade manual)
+            // Eliminar también las relaciones con facultades
             var enlaces = await _context.EspecieFacultades
                 .Where(ef => ef.IdEspecies == id)
                 .ToListAsync();
@@ -178,9 +248,6 @@ namespace SmartBiodiversityUtn.Services
                 primeraFac?.IdFacultad);
         }
 
-        /// <summary>
-        /// IdEspecie -> URL de la imagen más reciente (solo las que tengan URL).
-        /// </summary>
         private async Task<Dictionary<string, string>> MapaImagenesPorEspecieAsync()
         {
             var multimedias = await _context.Multimedia
@@ -194,7 +261,6 @@ namespace SmartBiodiversityUtn.Services
                     g => g.OrderByDescending(m => m.FechaMul).First().RutaArchivoMul);
         }
 
-        // static: no captura estado de la instancia (EF10 friendly)
         private static EspecieResponse MapToResponse(
             Especie especie,
             string nombreCategoria,

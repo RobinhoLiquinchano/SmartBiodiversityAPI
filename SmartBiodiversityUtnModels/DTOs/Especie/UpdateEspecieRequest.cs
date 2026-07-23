@@ -14,5 +14,10 @@ namespace SmartBiodiversityUtnModels.DTOs.Especie
         public string? Habitat { get; set; }
         public EstadoEspecie? EstadoEsp { get; set; }
         public string? IdCategoria { get; set; }
+
+        // ====== NUEVO: Cambiar facultad de la especie (opcional) ======
+        // Si se envía un IdFacultad, se actualiza la vinculación.
+        // Si se envía vacío ("") o null, se elimina la vinculación actual.
+        public string? FacultadId { get; set; }
     }
 }
