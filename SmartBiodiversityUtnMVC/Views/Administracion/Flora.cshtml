@@ -544,12 +544,22 @@
                                             <td><strong>@e.NombreComun</strong></td>
                                             <td><em>@e.NombreCientifico</em></td>
                                             <td>@(string.IsNullOrWhiteSpace(e.Habitat) ? "—" : e.Habitat)</td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(e.NombreFacultad))
+                                                {
+                                                    <span class="badge" style="background:#dbeafe;color:#1e40af;">📍 @e.NombreFacultad</span>
+                                                }
+                                                else
+                                                {
+                                                    <span style="color:var(--muted);">—</span>
+                                                }
+                                            </td>
                                             <td><span class="badge @estClass">@estLabel</span></td>
                                             <td>@e.FechaRegistroEsp.ToString("dd/MM/yyyy HH:mm")</td>
                                             <td class="right">
                                                 <button type="button" class="btn btn-edit" onclick="openEdit(this)"
                                                         data-id="@e.IdEspecie" data-nombre="@e.NombreComun" data-cientifico="@e.NombreCientifico"
-                                                        data-desc="@e.Descripcion" data-habitat="@e.Habitat" data-estado="@((int)e.EstadoEsp)">
+                                                        data-desc="@e.Descripcion" data-habitat="@e.Habitat" data-estado="@((int)e.EstadoEsp)" data-facultad="@e.IdFacultad">
                                                     ✏️ Editar
                                                 </button>
                                                 <form asp-controller="Administracion" asp-action="FloraDelete" method="post" style="display:inline"
@@ -590,6 +600,12 @@
                         <option value="3">En revisión</option>
                     </select>
                 </label>
+                <label>
+                    Facultad (ubicación)
+                    <select id="editFacultad" name="FacultadId">
+                        <option value="">-- Sin vincular a facultad --</option>
+                    </select>
+                </label>
                 <label>Agregar nueva imagen (opcional)<input type="file" name="archivo" accept="image/*" /></label>
                 <label class="full">Descripción<textarea id="editDescripcion" name="Descripcion" rows="6" maxlength="1000" style="min-height:140px; resize:vertical"></textarea></label>
                 <div class="full actions">
@@ -613,6 +629,9 @@
                 document.getElementById('editDescripcion').value = btn.dataset.desc || '';
                 document.getElementById('editHabitat').value     = btn.dataset.habitat || '';
                 document.getElementById('editEstado').value      = btn.dataset.estado || '1';
+                if (document.getElementById('editFacultad')) {
+                    document.getElementById('editFacultad').value = btn.dataset.facultad || '';
+                }
                 document.getElementById('editModal').style.display = 'flex';
             }
             function closeEdit() { document.getElementById('editModal').style.display = 'none'; }
@@ -656,6 +675,9 @@
     </script>
 </body>
 </html>
+
+
+
 
 
 
