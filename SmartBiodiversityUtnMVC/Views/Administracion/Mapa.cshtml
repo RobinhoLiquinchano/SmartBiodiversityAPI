@@ -1,3 +1,5 @@
+﻿FILE: SmartBiodiversityUtnMVC/Views/Administracion/Mapa.cshtml
+================================================
 ﻿@{
     Layout = null;
     ViewData["Title"] = "Mapa Campus - Smart Biodiversity";
@@ -443,7 +445,7 @@
                 // Icono personalizado con conteo
                 const icon = L.divIcon({
                     className: '',
-                    html: `<div class="custom-marker">${fac.totalEspecies}</div>`,
+                    html: `<div class="custom-marker">${fac.numero}</div>`,
                     iconSize: [36, 36],
                     iconAnchor: [18, 18],
                     popupAnchor: [0, -20]
@@ -454,7 +456,7 @@
 
                 // Popup con información básica
                 marker.bindPopup(`
-                    <div class="popup-title">${fac.nombre}</div>
+                    <div class="popup-title"><span style="background:#22c55e;color:white;padding:2px 8px;border-radius:6px;font-size:12px;margin-right:6px;">${fac.numero}</span>${fac.nombre}</div>
                     <div class="popup-desc">${fac.descripcion || 'Sin descripción'}</div>
                     <div style="margin-bottom:8px;font-size:13px;">
                         <strong>${fac.totalEspecies}</strong> especies registradas
@@ -578,3 +580,8 @@
 
 </body>
 </html>
+
+
+
+================================================
+FILE: SmartBiodiversityUtnMVC/Views/Administracion/Reportes.cshtml
