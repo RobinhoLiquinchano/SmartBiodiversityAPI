@@ -15,5 +15,9 @@ namespace SmartBiodiversityUtnModels.DTOs.Especie
         public string NombreCategoria { get; set; } = string.Empty;
         public DateTime FechaRegistroEsp { get; set; }
         public string? ImagenUrl { get; set; }
+
+        // ====== NUEVO: Facultades donde se encuentra la especie ======
+        public string? NombreFacultad { get; set; }
+        public string? IdFacultad { get; set; }
     }
 }

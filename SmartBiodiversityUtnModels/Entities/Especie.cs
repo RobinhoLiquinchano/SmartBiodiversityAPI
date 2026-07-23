@@ -37,5 +37,8 @@ namespace SmartBiodiversityUtnModels.Entities
         // Propiedades de navegación
         public Categoria Categoria { get; set; } = null!;
         public ICollection<Multimedia> MultimediaArchivos { get; set; } = new List<Multimedia>();
+
+        // ====== NUEVO: Relación N:M con Facultades ======
+        public ICollection<EspecieFacultad> EspecieFacultades { get; set; } = new List<EspecieFacultad>();
     }
 }

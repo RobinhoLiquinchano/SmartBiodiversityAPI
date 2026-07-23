@@ -35,13 +35,37 @@ namespace SmartBiodiversityUtn.Services
             _context.Especies.Add(newEspecie);
             await _context.SaveChangesAsync();
 
+            // ====== NUEVO: Vincular la especie con la facultad si se proporciona ======
+            string? nombreFacultad = null;
+            string? idFacultad = null;
+
+            if (!string.IsNullOrWhiteSpace(especie.FacultadId))
+            {
+                var facultad = await _context.Facultades.FindAsync(especie.FacultadId);
+                if (facultad != null)
+                {
+                    var enlace = new EspecieFacultad
+                    {
+                        IdEspecieFacultad = "EF-" + Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper(),
+                        IdEspecies = newEspecie.IdEspecies,
+                        IdFacultad = especie.FacultadId,
+                        FechaAsignacion = DateTime.UtcNow
+                    };
+                    _context.EspecieFacultades.Add(enlace);
+                    await _context.SaveChangesAsync();
+
+                    nombreFacultad = facultad.NombreFac;
+                    idFacultad = facultad.IdFacultad;
+                }
+            }
+
             var categoria = await _context.Categorias.FindAsync(newEspecie.IdCategoriaEsp);
 
             await BitacoraHelper.RegistrarAccionAsync(_bitacoraService, idUsuario, "CREAR_ESPECIE",
-                $"Creó la especie: {especie.NombreComun}");
+                $"Creó la especie: {especie.NombreComun}" +
+                (nombreFacultad != null ? $" en {nombreFacultad}" : ""));
 
-            // Al crear aún no hay imagen
-            return MapToResponse(newEspecie, categoria?.NombreCat ?? "Sin categoría", null);
+            return MapToResponse(newEspecie, categoria?.NombreCat ?? "Sin categoría", null, nombreFacultad, idFacultad);
         }
 
         public async Task<bool> UpdateEspecieAsync(string id, UpdateEspecieRequest especie, string idUsuario)
@@ -73,6 +97,13 @@ namespace SmartBiodiversityUtn.Services
             var especie = await _context.Especies.FirstOrDefaultAsync(e => e.IdEspecies == id);
             if (especie == null) return false;
 
+            // Eliminar también las relaciones con facultades (cascade manual)
+            var enlaces = await _context.EspecieFacultades
+                .Where(ef => ef.IdEspecies == id)
+                .ToListAsync();
+            if (enlaces.Count > 0)
+                _context.EspecieFacultades.RemoveRange(enlaces);
+
             var nombre = especie.NombreComunEsp;
             _context.Especies.Remove(especie);
             var result = await _context.SaveChangesAsync() > 0;
@@ -97,21 +128,27 @@ namespace SmartBiodiversityUtn.Services
             => await DeleteEspecieAsync(id, "SYSTEM");
 
         // ==================== Métodos de lectura ====================
-        // Traen la URL de la imagen (la más reciente) de cada especie en la misma consulta,
-        // sin N+1: una sola lectura de Multimedia agrupada en memoria.
         public async Task<IEnumerable<EspecieResponse>> GetAllEspeciesAsync()
         {
             var especies = await _context.Especies
                 .Include(e => e.Categoria)
+                .Include(e => e.EspecieFacultades)
+                    .ThenInclude(ef => ef.Facultad)
                 .ToListAsync();
 
             var dictImagenes = await MapaImagenesPorEspecieAsync();
 
             return especies
-                .Select(e => MapToResponse(
-                    e,
-                    e.Categoria?.NombreCat ?? "Sin categoría",
-                    dictImagenes.TryGetValue(e.IdEspecies, out var url) ? url : null))
+                .Select(e =>
+                {
+                    var primeraFac = e.EspecieFacultades.FirstOrDefault();
+                    return MapToResponse(
+                        e,
+                        e.Categoria?.NombreCat ?? "Sin categoría",
+                        dictImagenes.TryGetValue(e.IdEspecies, out var url) ? url : null,
+                        primeraFac?.Facultad?.NombreFac,
+                        primeraFac?.IdFacultad);
+                })
                 .ToList();
         }
 
@@ -119,6 +156,8 @@ namespace SmartBiodiversityUtn.Services
         {
             var especie = await _context.Especies
                 .Include(e => e.Categoria)
+                .Include(e => e.EspecieFacultades)
+                    .ThenInclude(ef => ef.Facultad)
                 .FirstOrDefaultAsync(e => e.IdEspecies == id);
 
             if (especie == null) return null;
@@ -129,7 +168,14 @@ namespace SmartBiodiversityUtn.Services
                 .Select(m => m.RutaArchivoMul)
                 .FirstOrDefaultAsync();
 
-            return MapToResponse(especie, especie.Categoria?.NombreCat ?? "Sin categoría", url);
+            var primeraFac = especie.EspecieFacultades.FirstOrDefault();
+
+            return MapToResponse(
+                especie,
+                especie.Categoria?.NombreCat ?? "Sin categoría",
+                url,
+                primeraFac?.Facultad?.NombreFac,
+                primeraFac?.IdFacultad);
         }
 
         /// <summary>
@@ -149,7 +195,12 @@ namespace SmartBiodiversityUtn.Services
         }
 
         // static: no captura estado de la instancia (EF10 friendly)
-        private static EspecieResponse MapToResponse(Especie especie, string nombreCategoria, string? imagenUrl)
+        private static EspecieResponse MapToResponse(
+            Especie especie,
+            string nombreCategoria,
+            string? imagenUrl,
+            string? nombreFacultad = null,
+            string? idFacultad = null)
         {
             return new EspecieResponse
             {
@@ -161,7 +212,9 @@ namespace SmartBiodiversityUtn.Services
                 EstadoEsp = especie.EstadoEsp,
                 NombreCategoria = nombreCategoria,
                 FechaRegistroEsp = especie.FechaRegistroEsp.ToEcuadorTime(),
-                ImagenUrl = imagenUrl
+                ImagenUrl = imagenUrl,
+                NombreFacultad = nombreFacultad,
+                IdFacultad = idFacultad
             };
         }
     }

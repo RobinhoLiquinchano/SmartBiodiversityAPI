@@ -21,6 +21,10 @@ namespace SmartBiodiversityUtn.Data
         public DbSet<Especie> Especies { get; set; } = default!;
         public DbSet<Multimedia> Multimedia { get; set; } = default!;
 
+        // ====== NUEVOS DbSets para Facultades ======
+        public DbSet<Facultad> Facultades { get; set; } = default!;
+        public DbSet<EspecieFacultad> EspecieFacultades { get; set; } = default!;
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -133,6 +137,32 @@ namespace SmartBiodiversityUtn.Data
                 entity.HasOne(m => m.Especie)
                       .WithMany(e => e.MultimediaArchivos)
                       .HasForeignKey(m => m.IdEspeciesMul)  // string
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ========== NUEVO: FACULTADES ==========
+            modelBuilder.Entity<Facultad>(entity =>
+            {
+                entity.HasKey(f => f.IdFacultad);
+                entity.HasIndex(f => f.NombreFac).IsUnique();
+            });
+
+            // ========== NUEVO: ESPECIE-FACULTAD (tabla intermedia N:M) ==========
+            modelBuilder.Entity<EspecieFacultad>(entity =>
+            {
+                entity.HasKey(ef => ef.IdEspecieFacultad);
+
+                // Índice único compuesto: una especie no puede estar dos veces en la misma facultad
+                entity.HasIndex(ef => new { ef.IdEspecies, ef.IdFacultad }).IsUnique();
+
+                entity.HasOne(ef => ef.Especie)
+                      .WithMany(e => e.EspecieFacultades)
+                      .HasForeignKey(ef => ef.IdEspecies)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(ef => ef.Facultad)
+                      .WithMany(f => f.EspecieFacultades)
+                      .HasForeignKey(ef => ef.IdFacultad)
                       .OnDelete(DeleteBehavior.Cascade);
             });
         }

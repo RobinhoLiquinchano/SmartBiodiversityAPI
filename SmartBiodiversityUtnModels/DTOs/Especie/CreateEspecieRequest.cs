@@ -13,5 +13,8 @@ namespace SmartBiodiversityUtnModels.DTOs
         public string? Descripcion { get; set; }
         public string? Habitat { get; set; }
         public string CategoriaId { get; set; } = string.Empty;
+
+        // ====== NUEVO: Facultad a la que se vincula la especie (opcional) ======
+        public string? FacultadId { get; set; }
     }
 }
