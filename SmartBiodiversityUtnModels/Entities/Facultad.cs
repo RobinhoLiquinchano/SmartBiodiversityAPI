@@ -9,6 +9,12 @@ namespace SmartBiodiversityUtnModels.Entities
         [Key]
         public string IdFacultad { get; set; } = "FAC-" + Guid.NewGuid().ToString("N").Substring(0, 6).ToUpper();
 
+        // ====== NUEVO: Número visible en el mapa y app móvil ======
+        // Fijo, secuencial (1, 2, 3...). Sirve como referencia estable
+        // para que la app móvil identifique la facultad por número.
+        [Required]
+        public int NumeroFac { get; set; }
+
         [Required]
         [MaxLength(150)]
         public string NombreFac { get; set; } = string.Empty;

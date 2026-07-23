@@ -18,11 +18,13 @@ namespace SmartBiodiversityUtn.Services
         {
             var facultades = await _context.Facultades
                 .Include(f => f.EspecieFacultades)
+                .OrderBy(f => f.NumeroFac)
                 .ToListAsync();
 
             return facultades.Select(f => new FacultadResponse
             {
                 IdFacultad = f.IdFacultad,
+                Numero = f.NumeroFac,
                 Nombre = f.NombreFac,
                 Latitud = f.Latitud,
                 Longitud = f.Longitud,
@@ -31,9 +33,6 @@ namespace SmartBiodiversityUtn.Services
             });
         }
 
-        /// <summary>
-        /// Devuelve una facultad específica por su ID.
-        /// </summary>
         public async Task<FacultadResponse?> GetFacultadByIdAsync(string id)
         {
             var f = await _context.Facultades
@@ -45,6 +44,7 @@ namespace SmartBiodiversityUtn.Services
             return new FacultadResponse
             {
                 IdFacultad = f.IdFacultad,
+                Numero = f.NumeroFac,
                 Nombre = f.NombreFac,
                 Latitud = f.Latitud,
                 Longitud = f.Longitud,
@@ -53,10 +53,6 @@ namespace SmartBiodiversityUtn.Services
             };
         }
 
-        /// <summary>
-        /// Devuelve las especies de una facultad, separadas en Flora y Fauna,
-        /// con sus conteos. Se usa para el panel lateral del mapa interactivo.
-        /// </summary>
         public async Task<FacultadEspeciesResponse?> GetEspeciesPorFacultadAsync(string idFacultad)
         {
             var facultad = await _context.Facultades
@@ -64,8 +60,6 @@ namespace SmartBiodiversityUtn.Services
 
             if (facultad == null) return null;
 
-            // Consulta única: trae todas las especies de esta facultad
-            // con su categoría y la URL de imagen más reciente.
             var especiesRaw = await _context.EspecieFacultades
                 .Where(ef => ef.IdFacultad == idFacultad)
                 .Include(ef => ef.Especie)
@@ -76,7 +70,6 @@ namespace SmartBiodiversityUtn.Services
                     ef.Especie.NombreComunEsp,
                     ef.Especie.NombreCientificoEsp,
                     CategoriaNombre = ef.Especie.Categoria.NombreCat,
-                    // Sub-consulta: la imagen más reciente de esta especie
                     ImagenUrl = ef.Especie.MultimediaArchivos
                         .Where(m => !string.IsNullOrEmpty(m.RutaArchivoMul))
                         .OrderByDescending(m => m.FechaMul)
@@ -85,7 +78,6 @@ namespace SmartBiodiversityUtn.Services
                 })
                 .ToListAsync();
 
-            // Separar en Flora y Fauna según el nombre de la categoría
             var flora = especiesRaw
                 .Where(e => string.Equals(e.CategoriaNombre?.Trim(), "Flora", StringComparison.OrdinalIgnoreCase))
                 .Select(e => new EspecieResumenDto

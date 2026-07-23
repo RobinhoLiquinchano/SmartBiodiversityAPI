@@ -165,6 +165,7 @@ using (var scope = app.Services.CreateScope())
             new Facultad
             {
                 IdFacultad = "FAC-UTN001",
+                NumeroFac = 1,
                 NombreFac = "FACAE",
                 Latitud = 0.356538,
                 Longitud = -78.110797,
@@ -173,6 +174,7 @@ using (var scope = app.Services.CreateScope())
             new Facultad
             {
                 IdFacultad = "FAC-UTN002",
+                NumeroFac = 2,
                 NombreFac = "FECYT",
                 Latitud = 0.357397,
                 Longitud = -78.111033,
@@ -181,14 +183,16 @@ using (var scope = app.Services.CreateScope())
             new Facultad
             {
                 IdFacultad = "FAC-UTN003",
+                NumeroFac = 3,
                 NombreFac = "FICAYA",
                 Latitud = 0.358352,
                 Longitud = -78.111259,
-                DescripcionFac = "Facultad de Ingeniería en Ciencias Agropecuarias y Ambientales - Planta Textil Azaya"
+                DescripcionFac = "Facultad de Ingeniería en Ciencias Agropecuarias y Ambientales - Campus El Olivo"
             },
             new Facultad
             {
                 IdFacultad = "FAC-UTN004",
+                NumeroFac = 4,
                 NombreFac = "FICA",
                 Latitud = 0.358813,
                 Longitud = -78.111248,
@@ -197,35 +201,40 @@ using (var scope = app.Services.CreateScope())
             new Facultad
             {
                 IdFacultad = "FAC-UTN005",
+                NumeroFac = 5,
                 NombreFac = "FCCSS",
                 Latitud = 0.358786,
                 Longitud = -78.111768,
-                DescripcionFac = "Facultad de Ciencias de la Salud - Juan Montalvo entre Colón y Velasco"
+                DescripcionFac = "Facultad de Ciencias de la Salud - Campus El Olivo"
             },
             new Facultad
             {
                 IdFacultad = "FAC-UTN006",
+                NumeroFac = 6,
                 NombreFac = "CAI",
                 Latitud = 0.358405,
                 Longitud = -78.111811,
-                DescripcionFac = "Centro de Adiestramiento Industrial - Campus El Olivo"
+                DescripcionFac = "Centro Académico de Idiomas - Campus El Olivo"
             },
             new Facultad
             {
                 IdFacultad = "FAC-UTN007",
+                NumeroFac = 7,
                 NombreFac = "POSGRADO",
                 Latitud = 0.358373,
                 Longitud = -78.112364,
-                DescripcionFac = "Instituto de Posgrado - Juan de Velasco entre Juan de Salinas y Juan Montalvo"
+                DescripcionFac = "Facultad de Posgrado - Campus El Olivo"
             },
             new Facultad
             {
                 IdFacultad = "FAC-UTN008",
+                NumeroFac = 8,
                 NombreFac = "DBU",
                 Latitud = 0.359065,
                 Longitud = -78.110443,
-                DescripcionFac = "Instituto de Posgrado - Juan de Velasco entre Juan de Salinas y Juan Montalvo"
+                DescripcionFac = "Departamento De Bienestar Universitario- Campus El Olivo"
             }
+
         };
 
         foreach (var fac in facultadesSeed)
