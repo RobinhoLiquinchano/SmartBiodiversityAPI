@@ -159,73 +159,71 @@ using (var scope = app.Services.CreateScope())
         }
 
         // ====== NUEVO: SEED FACULTADES UTN ======
+        // ====== SEED FACULTADES UTN (coordenadas corregidas) ======
         var facultadesSeed = new List<Facultad>
         {
-            // ─── Campus El Olivo (principal) ───
-            // Coordenada base del campus: 0.3584, -78.1115 (Waze + Wikipedia)
             new Facultad
             {
                 IdFacultad = "FAC-UTN001",
                 NombreFac = "FACAE",
-                Latitud = 0.3586,
-                Longitud = -78.1118,
+                Latitud = 0.356538,
+                Longitud = -78.110797,
                 DescripcionFac = "Facultad de Ciencias Administrativas y Económicas - Campus El Olivo"
             },
             new Facultad
             {
                 IdFacultad = "FAC-UTN002",
                 NombreFac = "FECYT",
-                Latitud = 0.3582,
-                Longitud = -78.1112,
+                Latitud = 0.357397,
+                Longitud = -78.111033,
                 DescripcionFac = "Facultad de Educación, Ciencia y Tecnología - Campus El Olivo"
+            },
+            new Facultad
+            {
+                IdFacultad = "FAC-UTN003",
+                NombreFac = "FICAYA",
+                Latitud = 0.358352,
+                Longitud = -78.111259,
+                DescripcionFac = "Facultad de Ingeniería en Ciencias Agropecuarias y Ambientales - Planta Textil Azaya"
             },
             new Facultad
             {
                 IdFacultad = "FAC-UTN004",
                 NombreFac = "FICA",
-                Latitud = 0.3580,
-                Longitud = -78.1120,
+                Latitud = 0.358813,
+                Longitud = -78.111248,
                 DescripcionFac = "Facultad de Ingeniería en Ciencias Aplicadas - Campus El Olivo"
+            },
+            new Facultad
+            {
+                IdFacultad = "FAC-UTN005",
+                NombreFac = "FCCSS",
+                Latitud = 0.358786,
+                Longitud = -78.111768,
+                DescripcionFac = "Facultad de Ciencias de la Salud - Juan Montalvo entre Colón y Velasco"
             },
             new Facultad
             {
                 IdFacultad = "FAC-UTN006",
                 NombreFac = "CAI",
-                Latitud = 0.3588,
-                Longitud = -78.1110,
+                Latitud = 0.358405,
+                Longitud = -78.111811,
                 DescripcionFac = "Centro de Adiestramiento Industrial - Campus El Olivo"
             },
-
-            // ─── Planta Textil Azaya ───
-            // Coordenada real del Estadio UTN / Azaya: 0.3791, -78.1223 (Waze)
-            new Facultad
-            {
-                IdFacultad = "FAC-UTN003",
-                NombreFac = "FICAYA",
-                Latitud = 0.3791,
-                Longitud = -78.1223,
-                DescripcionFac = "Facultad de Ingeniería en Ciencias Agropecuarias y Ambientales - Planta Textil Azaya"
-            },
-
-            // ─── Campus Ciencias de la Salud ───
-            // Juan Montalvo entre Colón y Velasco: 0.3421, -78.1149 (Waze)
-            new Facultad
-            {
-                IdFacultad = "FAC-UTN005",
-                NombreFac = "CIENCIAS DE LA SALUD",
-                Latitud = 0.3421,
-                Longitud = -78.1149,
-                DescripcionFac = "Facultad de Ciencias de la Salud - Juan Montalvo entre Colón y Velasco"
-            },
-
-            // ─── Campus Posgrado ───
-            // Juan de Velasco entre Juan de Salinas y Juan Montalvo: ~0.3520, -78.1185
             new Facultad
             {
                 IdFacultad = "FAC-UTN007",
                 NombreFac = "POSGRADO",
-                Latitud = 0.3520,
-                Longitud = -78.1185,
+                Latitud = 0.358373,
+                Longitud = -78.112364,
+                DescripcionFac = "Instituto de Posgrado - Juan de Velasco entre Juan de Salinas y Juan Montalvo"
+            },
+            new Facultad
+            {
+                IdFacultad = "FAC-UTN008",
+                NombreFac = "DBU",
+                Latitud = 0.359065,
+                Longitud = -78.110443,
                 DescripcionFac = "Instituto de Posgrado - Juan de Velasco entre Juan de Salinas y Juan Montalvo"
             }
         };
@@ -238,6 +236,7 @@ using (var scope = app.Services.CreateScope())
             }
         }
         await context.SaveChangesAsync();
+
 
     }
     catch (Exception ex)
