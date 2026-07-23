@@ -508,10 +508,6 @@
                                             <td><span class="badge @estadoClass">@estadoText</span></td>
                                             <td>
                                                 <div class="btn-group">
-                                                    <button class="btn btn-view"
-                                                            onclick='verDetalle(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(aporte)))'>
-                                                        👁️ Ver
-                                                    </button>
                                                     @if (aporte.EstadoApo == EstadoAporte.Pendiente)
                                                     {
                                                         <button class="btn btn-approve" onclick="aprobarAporte('@aporte.IdAporte')">
@@ -581,58 +577,94 @@
             });
 
             async function aprobarAporte(id) {
-                if (!confirm('¿Estás seguro de aprobar este aporte?')) return;
+                if (!confirm('¿Estás seguro de aprobar este aporte? El aporte será marcado como válido y visible para todos los usuarios.')) return;
+
+                const token = getCookie('AccessToken');
+                if (!token) {
+                    alert('No se encontró el token de autenticación. Por favor, inicia sesión nuevamente.');
+                    return;
+                }
 
                 try {
                     const response = await fetch(`${API_BASE}/api/Aportes/${id}/aprobar`, {
                         method: 'PUT',
                         headers: {
-                            'Authorization': `Bearer ${getCookie('AccessToken')}`
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
                         }
                     });
 
-                    if (!response.ok) throw new Error('Error al aprobar');
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(errorText || `Error ${response.status}`);
+                    }
 
+                    alert('✅ Aporte aprobado exitosamente');
                     location.reload();
                 } catch (error) {
+                    console.error('Error al aprobar:', error);
                     alert('Error al aprobar: ' + error.message);
                 }
             }
 
             async function rechazarAporte(id) {
-                if (!confirm('¿Estás seguro de rechazar este aporte?')) return;
+                if (!confirm('¿Estás seguro de rechazar este aporte? El aporte será marcado como inválido y no será visible para los usuarios.')) return;
+
+                const token = getCookie('AccessToken');
+                if (!token) {
+                    alert('No se encontró el token de autenticación. Por favor, inicia sesión nuevamente.');
+                    return;
+                }
 
                 try {
                     const response = await fetch(`${API_BASE}/api/Aportes/${id}/rechazar`, {
                         method: 'PUT',
                         headers: {
-                            'Authorization': `Bearer ${getCookie('AccessToken')}`
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
                         }
                     });
 
-                    if (!response.ok) throw new Error('Error al rechazar');
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(errorText || `Error ${response.status}`);
+                    }
 
+                    alert('❌ Aporte rechazado');
                     location.reload();
                 } catch (error) {
+                    console.error('Error al rechazar:', error);
                     alert('Error al rechazar: ' + error.message);
                 }
             }
 
             async function eliminarAporte(id) {
-                if (!confirm('¿Estás seguro de eliminar este aporte? Esta acción no se puede deshacer.')) return;
+                if (!confirm('¿Estás seguro de ELIMINAR este aporte? Esta acción no se puede deshacer y el aporte será borrado permanentemente de la base de datos.')) return;
+
+                const token = getCookie('AccessToken');
+                if (!token) {
+                    alert('No se encontró el token de autenticación. Por favor, inicia sesión nuevamente.');
+                    return;
+                }
 
                 try {
                     const response = await fetch(`${API_BASE}/api/Aportes/${id}`, {
                         method: 'DELETE',
                         headers: {
-                            'Authorization': `Bearer ${getCookie('AccessToken')}`
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
                         }
                     });
 
-                    if (!response.ok) throw new Error('Error al eliminar');
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(errorText || `Error ${response.status}`);
+                    }
 
+                    alert('🗑️ Aporte eliminado permanentemente');
                     location.reload();
                 } catch (error) {
+                    console.error('Error al eliminar:', error);
                     alert('Error al eliminar: ' + error.message);
                 }
             }
