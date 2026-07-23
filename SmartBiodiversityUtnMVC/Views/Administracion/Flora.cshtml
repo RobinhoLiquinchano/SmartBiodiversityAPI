@@ -504,6 +504,18 @@
                             <label>Hábitat<input name="Habitat" required maxlength="150" placeholder="Ej: Jardín botánico del campus" /></label>
                             <label>Imagen (opcional)<input type="file" name="archivo" accept="image/*" /></label>
                             <label class="full">Descripción<textarea name="Descripcion" rows="6" required maxlength="1000" style="min-height:140px; resize:vertical" placeholder="Características, floración, etc."></textarea></label>
+
+                            @* ===== NUEVO: Detalle botánico (Flora) ===== *@
+                            <h3 class="full" style="margin:8px 0 0; grid-column:1/-1; color:#166534;">🌿 Detalle botánico</h3>
+                            <label>Altura promedio (m) *<input type="number" step="0.01" min="0" max="999.99" name="DetalleFlora.AlturaPromedioM" required placeholder="Ej: 15.50" /></label>
+                            <label>Altura máxima (m) *<input type="number" step="0.01" min="0" max="999.99" name="DetalleFlora.AlturaMaximaM" required placeholder="Ej: 25.00" /></label>
+                            <label>Diámetro del tronco (cm) *<input type="number" step="0.01" min="0" max="9999.99" name="DetalleFlora.DiametroTroncoCm" required placeholder="Ej: 80.00" /></label>
+                            <label>Tipo de corteza del tronco *<input name="DetalleFlora.TipoCortezaTronco" required maxlength="150" placeholder="Ej: Fisurada, marrón grisácea" /></label>
+                            <label>Forma de copa *<input name="DetalleFlora.FormaCopa" required maxlength="100" placeholder="Ej: Redondeada" /></label>
+                            <label>Tipo de hoja *<input name="DetalleFlora.TipoHoja" required maxlength="150" placeholder="Ej: Compuesta, pinnada" /></label>
+                            <label>Color de flor / fruto *<input name="DetalleFlora.ColorFlorFruto" required maxlength="150" placeholder="Ej: Flores blancas, fruto café" /></label>
+                            <label>Hábito de crecimiento *<input name="DetalleFlora.HabitoCrecimiento" required maxlength="100" placeholder="Ej: Árbol" /></label>
+
                             <div class="full actions">
                                 <button type="submit" class="btn btn-primary">🌸 Registrar especie</button>
                             </div>
@@ -557,6 +569,9 @@
                                             <td><span class="badge @estClass">@estLabel</span></td>
                                             <td>@e.FechaRegistroEsp.ToString("dd/MM/yyyy HH:mm")</td>
                                             <td class="right">
+                                                <button type="button" class="btn btn-edit" style="background:#dcfce7;color:#166534;" onclick="verDetalle('@e.IdEspecie')">
+                                                    👁️ Ver
+                                                </button>
                                                 <button type="button" class="btn btn-edit" onclick="openEdit(this)"
                                                         data-id="@e.IdEspecie" data-nombre="@e.NombreComun" data-cientifico="@e.NombreCientifico"
                                                         data-desc="@e.Descripcion" data-habitat="@e.Habitat" data-estado="@((int)e.EstadoEsp)" data-facultad="@e.IdFacultad">
@@ -608,11 +623,36 @@
                 </label>
                 <label>Agregar nueva imagen (opcional)<input type="file" name="archivo" accept="image/*" /></label>
                 <label class="full">Descripción<textarea id="editDescripcion" name="Descripcion" rows="6" maxlength="1000" style="min-height:140px; resize:vertical"></textarea></label>
+
+                @* ===== NUEVO: Detalle botánico (Flora) ===== *@
+                <h3 class="full" style="margin:8px 0 0; grid-column:1/-1; color:#166534;">🌿 Detalle botánico</h3>
+                <label>Altura promedio (m) *<input type="number" step="0.01" min="0" max="999.99" id="editFloraAlturaProm" name="DetalleFlora.AlturaPromedioM" required /></label>
+                <label>Altura máxima (m) *<input type="number" step="0.01" min="0" max="999.99" id="editFloraAlturaMax" name="DetalleFlora.AlturaMaximaM" required /></label>
+                <label>Diámetro del tronco (cm) *<input type="number" step="0.01" min="0" max="9999.99" id="editFloraDiametro" name="DetalleFlora.DiametroTroncoCm" required /></label>
+                <label>Tipo de corteza del tronco *<input id="editFloraCorteza" name="DetalleFlora.TipoCortezaTronco" required maxlength="150" /></label>
+                <label>Forma de copa *<input id="editFloraCopa" name="DetalleFlora.FormaCopa" required maxlength="100" /></label>
+                <label>Tipo de hoja *<input id="editFloraHoja" name="DetalleFlora.TipoHoja" required maxlength="150" /></label>
+                <label>Color de flor / fruto *<input id="editFloraColor" name="DetalleFlora.ColorFlorFruto" required maxlength="150" /></label>
+                <label>Hábito de crecimiento *<input id="editFloraHabito" name="DetalleFlora.HabitoCrecimiento" required maxlength="100" /></label>
+
                 <div class="full actions">
                     <button type="button" class="btn btn-ghost" onclick="closeEdit()">Cancelar</button>
                     <button type="submit" class="btn btn-primary">💾 Guardar cambios</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    @* ===== NUEVO: Modal ver detalle completo ===== *@
+    <div id="detalleModal" class="modal" style="display:none" onclick="if(event.target===this)closeDetalle()">
+        <div class="modal-card">
+            <h2>🌿 Detalle de la especie</h2>
+            <div id="detalleBody" style="line-height:1.7; font-size:14px;">
+                <p style="color:var(--muted);">Cargando…</p>
+            </div>
+            <div class="actions" style="margin-top:16px;">
+                <button type="button" class="btn btn-ghost" onclick="closeDetalle()">Cerrar</button>
+            </div>
         </div>
     </div>
 
@@ -622,19 +662,96 @@
     </div>
 
     <script>
-            function openEdit(btn) {
-                document.getElementById('editId').value          = btn.dataset.id || '';
-                document.getElementById('editNombre').value      = btn.dataset.nombre || '';
-                document.getElementById('editCientifico').value  = btn.dataset.cientifico || '';
-                document.getElementById('editDescripcion').value = btn.dataset.desc || '';
-                document.getElementById('editHabitat').value     = btn.dataset.habitat || '';
-                document.getElementById('editEstado').value      = btn.dataset.estado || '1';
+            // Base del API (se usa para leer el detalle ampliado que NO viene en el listado).
+            const API_BASE = 'https://smartbiodiversityapi.onrender.com';
+
+            function setVal(id, v) {
+                var el = document.getElementById(id);
+                if (el) el.value = (v === null || v === undefined) ? '' : v;
+            }
+
+            async function openEdit(btn) {
+                setVal('editId', btn.dataset.id);
+                setVal('editNombre', btn.dataset.nombre);
+                setVal('editCientifico', btn.dataset.cientifico);
+                setVal('editDescripcion', btn.dataset.desc);
+                setVal('editHabitat', btn.dataset.habitat);
+                setVal('editEstado', btn.dataset.estado || '1');
                 if (document.getElementById('editFacultad')) {
                     document.getElementById('editFacultad').value = btn.dataset.facultad || '';
                 }
+
+                // Limpiar campos de detalle mientras carga
+                ['editFloraAlturaProm','editFloraAlturaMax','editFloraDiametro','editFloraCorteza',
+                 'editFloraCopa','editFloraHoja','editFloraColor','editFloraHabito'].forEach(id => setVal(id, ''));
+
                 document.getElementById('editModal').style.display = 'flex';
+
+                // Cargar el detalle botánico actual desde el endpoint de detalle.
+                try {
+                    const resp = await fetch(`${API_BASE}/api/Especies/${btn.dataset.id}`);
+                    if (resp.ok) {
+                        const esp = await resp.json();
+                        const d = esp.detalleFlora;
+                        if (d) {
+                            setVal('editFloraAlturaProm', d.alturaPromedioM);
+                            setVal('editFloraAlturaMax',  d.alturaMaximaM);
+                            setVal('editFloraDiametro',   d.diametroTroncoCm);
+                            setVal('editFloraCorteza',    d.tipoCortezaTronco);
+                            setVal('editFloraCopa',       d.formaCopa);
+                            setVal('editFloraHoja',       d.tipoHoja);
+                            setVal('editFloraColor',      d.colorFlorFruto);
+                            setVal('editFloraHabito',     d.habitoCrecimiento);
+                        }
+                    }
+                } catch (e) { console.warn('No se pudo cargar el detalle:', e); }
             }
             function closeEdit() { document.getElementById('editModal').style.display = 'none'; }
+
+            // ===== Ver detalle completo (solo lectura) =====
+            function fila(label, valor, sufijo) {
+                if (valor === null || valor === undefined || valor === '') return '';
+                return `<div><strong>${label}:</strong> ${valor}${sufijo || ''}</div>`;
+            }
+            async function verDetalle(id) {
+                const modal = document.getElementById('detalleModal');
+                const body  = document.getElementById('detalleBody');
+                body.innerHTML = '<p style="color:var(--muted);">Cargando…</p>';
+                modal.style.display = 'flex';
+                try {
+                    const resp = await fetch(`${API_BASE}/api/Especies/${id}`);
+                    if (!resp.ok) { body.innerHTML = '<p class="warn">No se pudo cargar la especie.</p>'; return; }
+                    const e = await resp.json();
+                    let html = '';
+                    html += fila('Nombre común', e.nombreComun);
+                    html += fila('Nombre científico', `<em>${e.nombreCientifico || ''}</em>`);
+                    html += fila('Categoría', e.nombreCategoria);
+                    html += fila('Hábitat', e.habitat);
+                    html += fila('Facultad', e.nombreFacultad);
+                    html += fila('Descripción', e.descripcion);
+                    if (e.imagenUrl) {
+                        html += `<div style="margin:10px 0;"><img src="${e.imagenUrl}" style="max-width:100%;border-radius:10px;" /></div>`;
+                    }
+                    const d = e.detalleFlora;
+                    if (d) {
+                        html += '<h3 style="margin:14px 0 6px;color:#166534;">🌿 Detalle botánico</h3>';
+                        html += fila('Altura promedio', d.alturaPromedioM, ' m');
+                        html += fila('Altura máxima', d.alturaMaximaM, ' m');
+                        html += fila('Diámetro del tronco', d.diametroTroncoCm, ' cm');
+                        html += fila('Tipo de corteza', d.tipoCortezaTronco);
+                        html += fila('Forma de copa', d.formaCopa);
+                        html += fila('Tipo de hoja', d.tipoHoja);
+                        html += fila('Color de flor/fruto', d.colorFlorFruto);
+                        html += fila('Hábito de crecimiento', d.habitoCrecimiento);
+                    } else {
+                        html += '<p class="warn" style="margin-top:12px;">Esta especie aún no tiene detalle botánico registrado.</p>';
+                    }
+                    body.innerHTML = html;
+                } catch (err) {
+                    body.innerHTML = '<p class="warn">Error al cargar el detalle.</p>';
+                }
+            }
+            function closeDetalle() { document.getElementById('detalleModal').style.display = 'none'; }
 
             function openLightbox(src) {
                 document.getElementById('lightboxImg').src = src;
@@ -646,7 +763,7 @@
             }
 
             document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape') { closeEdit(); closeLightbox(); }
+                if (e.key === 'Escape') { closeEdit(); closeLightbox(); closeDetalle(); }
             });
     </script>
 
@@ -654,7 +771,6 @@
             // ===== Cargar facultades en los selectores =====
             (async function cargarFacultades() {
                 try {
-                    const API_BASE = 'https://smartbiodiversityapi.onrender.com';
                     const resp = await fetch(`${API_BASE}/api/Facultades`);
                     if (!resp.ok) return;
                     const facultades = await resp.json();
@@ -675,9 +791,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-

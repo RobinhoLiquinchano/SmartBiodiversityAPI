@@ -504,6 +504,17 @@
                             <label>Hábitat *<input name="Habitat" required maxlength="150" placeholder="Ej: Bosque húmedo del campus" /></label>
                             <label>Imagen (opcional)<input type="file" name="archivo" accept="image/*" /></label>
                             <label class="full">Descripción<textarea name="Descripcion" rows="6" required maxlength="1000" style="min-height:140px; resize:vertical" placeholder="Características, comportamiento, etc."></textarea></label>
+
+                            @* ===== NUEVO: Detalle zoológico (Fauna) ===== *@
+                            <h3 class="full" style="margin:8px 0 0; grid-column:1/-1; color:#7c2d12;">🦴 Detalle zoológico</h3>
+                            <label>Longitud promedio (cm) *<input type="number" step="0.01" min="0" max="9999.99" name="DetalleFauna.LongitudPromedioCm" required placeholder="Ej: 21.00" /></label>
+                            <label>Envergadura (cm) *<input type="number" step="0.01" min="0" max="9999.99" name="DetalleFauna.EnvergaduraCm" required placeholder="Ej: 24.50" /></label>
+                            <label>Peso promedio (g) *<input type="number" step="0.01" min="0" max="999999.99" name="DetalleFauna.PesoPromedioGramos" required placeholder="Ej: 19.50" /></label>
+                            <label>Tipo de pelaje / plumaje *<input name="DetalleFauna.TipoPelajePlumaje" required maxlength="200" placeholder="Ej: Plumaje pardo con reflejos verdes" /></label>
+                            <label>Dimorfismo sexual *<input name="DetalleFauna.DimorfismoSexual" required maxlength="300" placeholder="Ej: Machos más coloridos que hembras" /></label>
+                            <label>Dieta *<input name="DetalleFauna.Dieta" required maxlength="100" placeholder="Ej: Nectarívoro / insectívoro" /></label>
+                            <label>Patrón de actividad *<input name="DetalleFauna.PatronActividad" required maxlength="50" placeholder="Ej: Diurno" /></label>
+
                             <div class="full actions">
                                 <button type="submit" class="btn btn-primary">🦋 Registrar especie</button>
                             </div>
@@ -547,6 +558,9 @@
                                             <td><span class="badge @estClass">@estLabel</span></td>
                                             <td>@e.FechaRegistroEsp.ToString("dd/MM/yyyy HH:mm")</td>
                                             <td class="right">
+                                                <button type="button" class="btn btn-edit" style="background:#ffedd5;color:#7c2d12;" onclick="verDetalle('@e.IdEspecie')">
+                                                    👁️ Ver
+                                                </button>
                                                 <button type="button" class="btn btn-edit" onclick="openEdit(this)"
                                                         data-id="@e.IdEspecie" data-nombre="@e.NombreComun" data-cientifico="@e.NombreCientifico"
                                                         data-desc="@e.Descripcion" data-habitat="@e.Habitat" data-estado="@((int)e.EstadoEsp)">
@@ -592,11 +606,35 @@
                 </label>
                 <label>Agregar nueva imagen (opcional)<input type="file" name="archivo" accept="image/*" /></label>
                 <label class="full">Descripción<textarea id="editDescripcion" name="Descripcion" rows="6" maxlength="1000" style="min-height:140px; resize:vertical"></textarea></label>
+
+                @* ===== NUEVO: Detalle zoológico (Fauna) ===== *@
+                <h3 class="full" style="margin:8px 0 0; grid-column:1/-1; color:#7c2d12;">🦴 Detalle zoológico</h3>
+                <label>Longitud promedio (cm) *<input type="number" step="0.01" min="0" max="9999.99" id="editFaunaLongitud" name="DetalleFauna.LongitudPromedioCm" required /></label>
+                <label>Envergadura (cm) *<input type="number" step="0.01" min="0" max="9999.99" id="editFaunaEnvergadura" name="DetalleFauna.EnvergaduraCm" required /></label>
+                <label>Peso promedio (g) *<input type="number" step="0.01" min="0" max="999999.99" id="editFaunaPeso" name="DetalleFauna.PesoPromedioGramos" required /></label>
+                <label>Tipo de pelaje / plumaje *<input id="editFaunaPelaje" name="DetalleFauna.TipoPelajePlumaje" required maxlength="200" /></label>
+                <label>Dimorfismo sexual *<input id="editFaunaDimorfismo" name="DetalleFauna.DimorfismoSexual" required maxlength="300" /></label>
+                <label>Dieta *<input id="editFaunaDieta" name="DetalleFauna.Dieta" required maxlength="100" /></label>
+                <label>Patrón de actividad *<input id="editFaunaPatron" name="DetalleFauna.PatronActividad" required maxlength="50" /></label>
+
                 <div class="full actions">
                     <button type="button" class="btn btn-ghost" onclick="closeEdit()">Cancelar</button>
                     <button type="submit" class="btn btn-primary">💾 Guardar cambios</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    @* ===== NUEVO: Modal ver detalle completo ===== *@
+    <div id="detalleModal" class="modal" style="display:none" onclick="if(event.target===this)closeDetalle()">
+        <div class="modal-card">
+            <h2>🦴 Detalle de la especie</h2>
+            <div id="detalleBody" style="line-height:1.7; font-size:14px;">
+                <p style="color:var(--muted);">Cargando…</p>
+            </div>
+            <div class="actions" style="margin-top:16px;">
+                <button type="button" class="btn btn-ghost" onclick="closeDetalle()">Cerrar</button>
+            </div>
         </div>
     </div>
 
@@ -606,16 +644,93 @@
     </div>
 
     <script>
-            function openEdit(btn) {
-                document.getElementById('editId').value          = btn.dataset.id || '';
-                document.getElementById('editNombre').value      = btn.dataset.nombre || '';
-                document.getElementById('editCientifico').value  = btn.dataset.cientifico || '';
-                document.getElementById('editDescripcion').value = btn.dataset.desc || '';
-                document.getElementById('editHabitat').value     = btn.dataset.habitat || '';
-                document.getElementById('editEstado').value      = btn.dataset.estado || '1';
+            // Base del API (se usa para leer el detalle ampliado que NO viene en el listado).
+            const API_BASE = 'https://smartbiodiversityapi.onrender.com';
+
+            function setVal(id, v) {
+                var el = document.getElementById(id);
+                if (el) el.value = (v === null || v === undefined) ? '' : v;
+            }
+
+            async function openEdit(btn) {
+                setVal('editId', btn.dataset.id);
+                setVal('editNombre', btn.dataset.nombre);
+                setVal('editCientifico', btn.dataset.cientifico);
+                setVal('editDescripcion', btn.dataset.desc);
+                setVal('editHabitat', btn.dataset.habitat);
+                setVal('editEstado', btn.dataset.estado || '1');
+                if (document.getElementById('editFacultad')) {
+                    document.getElementById('editFacultad').value = btn.dataset.facultad || '';
+                }
+
+                ['editFaunaLongitud','editFaunaEnvergadura','editFaunaPeso','editFaunaPelaje',
+                 'editFaunaDimorfismo','editFaunaDieta','editFaunaPatron'].forEach(id => setVal(id, ''));
+
                 document.getElementById('editModal').style.display = 'flex';
+
+                // Cargar el detalle zoológico actual desde el endpoint de detalle.
+                try {
+                    const resp = await fetch(`${API_BASE}/api/Especies/${btn.dataset.id}`);
+                    if (resp.ok) {
+                        const esp = await resp.json();
+                        const d = esp.detalleFauna;
+                        if (d) {
+                            setVal('editFaunaLongitud',    d.longitudPromedioCm);
+                            setVal('editFaunaEnvergadura', d.envergaduraCm);
+                            setVal('editFaunaPeso',        d.pesoPromedioGramos);
+                            setVal('editFaunaPelaje',      d.tipoPelajePlumaje);
+                            setVal('editFaunaDimorfismo',  d.dimorfismoSexual);
+                            setVal('editFaunaDieta',       d.dieta);
+                            setVal('editFaunaPatron',      d.patronActividad);
+                        }
+                    }
+                } catch (e) { console.warn('No se pudo cargar el detalle:', e); }
             }
             function closeEdit() { document.getElementById('editModal').style.display = 'none'; }
+
+            // ===== Ver detalle completo (solo lectura) =====
+            function fila(label, valor, sufijo) {
+                if (valor === null || valor === undefined || valor === '') return '';
+                return `<div><strong>${label}:</strong> ${valor}${sufijo || ''}</div>`;
+            }
+            async function verDetalle(id) {
+                const modal = document.getElementById('detalleModal');
+                const body  = document.getElementById('detalleBody');
+                body.innerHTML = '<p style="color:var(--muted);">Cargando…</p>';
+                modal.style.display = 'flex';
+                try {
+                    const resp = await fetch(`${API_BASE}/api/Especies/${id}`);
+                    if (!resp.ok) { body.innerHTML = '<p class="warn">No se pudo cargar la especie.</p>'; return; }
+                    const e = await resp.json();
+                    let html = '';
+                    html += fila('Nombre común', e.nombreComun);
+                    html += fila('Nombre científico', `<em>${e.nombreCientifico || ''}</em>`);
+                    html += fila('Categoría', e.nombreCategoria);
+                    html += fila('Hábitat', e.habitat);
+                    html += fila('Facultad', e.nombreFacultad);
+                    html += fila('Descripción', e.descripcion);
+                    if (e.imagenUrl) {
+                        html += `<div style="margin:10px 0;"><img src="${e.imagenUrl}" style="max-width:100%;border-radius:10px;" /></div>`;
+                    }
+                    const d = e.detalleFauna;
+                    if (d) {
+                        html += '<h3 style="margin:14px 0 6px;color:#7c2d12;">🦴 Detalle zoológico</h3>';
+                        html += fila('Longitud promedio', d.longitudPromedioCm, ' cm');
+                        html += fila('Envergadura', d.envergaduraCm, ' cm');
+                        html += fila('Peso promedio', d.pesoPromedioGramos, ' g');
+                        html += fila('Tipo de pelaje/plumaje', d.tipoPelajePlumaje);
+                        html += fila('Dimorfismo sexual', d.dimorfismoSexual);
+                        html += fila('Dieta', d.dieta);
+                        html += fila('Patrón de actividad', d.patronActividad);
+                    } else {
+                        html += '<p class="warn" style="margin-top:12px;">Esta especie aún no tiene detalle zoológico registrado.</p>';
+                    }
+                    body.innerHTML = html;
+                } catch (err) {
+                    body.innerHTML = '<p class="warn">Error al cargar el detalle.</p>';
+                }
+            }
+            function closeDetalle() { document.getElementById('detalleModal').style.display = 'none'; }
 
             function openLightbox(src) {
                 document.getElementById('lightboxImg').src = src;
@@ -627,7 +742,7 @@
             }
 
             document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape') { closeEdit(); closeLightbox(); }
+                if (e.key === 'Escape') { closeEdit(); closeLightbox(); closeDetalle(); }
             });
     </script>
 
@@ -635,7 +750,6 @@
             // ===== Cargar facultades en los selectores =====
             (async function cargarFacultades() {
                 try {
-                    const API_BASE = 'https://smartbiodiversityapi.onrender.com';
                     const resp = await fetch(`${API_BASE}/api/Facultades`);
                     if (!resp.ok) return;
                     const facultades = await resp.json();
@@ -656,6 +770,3 @@
     </script>
 </body>
 </html>
-
-
-

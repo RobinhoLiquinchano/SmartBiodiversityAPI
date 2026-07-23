@@ -392,6 +392,18 @@ namespace SmartBiodiversityUtnMVC.Controllers
                 return RedirectToAction(nameof(Flora));
             }
 
+            // Detalle botánico obligatorio
+            var df = request.DetalleFlora;
+            if (df == null ||
+                df.AlturaPromedioM == null || df.AlturaMaximaM == null || df.DiametroTroncoCm == null ||
+                string.IsNullOrWhiteSpace(df.TipoCortezaTronco) || string.IsNullOrWhiteSpace(df.FormaCopa) ||
+                string.IsNullOrWhiteSpace(df.TipoHoja) || string.IsNullOrWhiteSpace(df.ColorFlorFruto) ||
+                string.IsNullOrWhiteSpace(df.HabitoCrecimiento))
+            {
+                TempData["FloraError"] = "El detalle botánico es obligatorio: completa todos sus campos.";
+                return RedirectToAction(nameof(Flora));
+            }
+
             var floraId = await IdCategoriaAsync("Flora");
             if (string.IsNullOrEmpty(floraId))
             {
@@ -491,6 +503,17 @@ namespace SmartBiodiversityUtnMVC.Controllers
                 archivo == null || archivo.Length == 0)
             {
                 TempData["FaunaError"] = "Todos los campos son obligatorios, incluida la imagen.";
+                return RedirectToAction(nameof(Fauna));
+            }
+
+            // Detalle zoológico obligatorio
+            var dz = request.DetalleFauna;
+            if (dz == null ||
+                dz.LongitudPromedioCm == null || dz.EnvergaduraCm == null || dz.PesoPromedioGramos == null ||
+                string.IsNullOrWhiteSpace(dz.TipoPelajePlumaje) || string.IsNullOrWhiteSpace(dz.DimorfismoSexual) ||
+                string.IsNullOrWhiteSpace(dz.Dieta) || string.IsNullOrWhiteSpace(dz.PatronActividad))
+            {
+                TempData["FaunaError"] = "El detalle zoológico es obligatorio: completa todos sus campos.";
                 return RedirectToAction(nameof(Fauna));
             }
 
