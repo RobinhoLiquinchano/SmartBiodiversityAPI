@@ -64,6 +64,7 @@ builder.Services.AddScoped<IAvisoService, AvisoService>();
 builder.Services.AddHttpClient<IEmailService, EmailService>();
 builder.Services.AddScoped<IBitacoraService, BitacoraService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IFacultadService, FacultadService>();
 
 // JWT AUTHENTICATION 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

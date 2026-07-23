@@ -507,5 +507,14 @@ namespace SmartBiodiversityUtnMVC.Controllers
 
             return RedirectToAction(nameof(Fauna));
         }
+
+        // =====================================================================
+        //  MAPA CAMPUS (Leaflet + OpenStreetMap)
+        // =====================================================================
+        [HttpGet]
+        public IActionResult Mapa()
+        {
+            return View();
+        }
     }
 }

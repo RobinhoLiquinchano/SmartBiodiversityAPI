@@ -3,20 +3,17 @@
    - Idéntico en TODAS las vistas (se inyecta con: @await Html.PartialAsync("_AdminSidebar"))
    - FIJO: no se mueve al hacer scroll (position: fixed).
    - El ítem activo se calcula solo según la acción actual.
-   - "Taxonomía" fue reemplazado por "Avisos".
+   - Actualizado: "Mapa Campus" ahora apunta a la acción real.
    ===================================================================== *@
 @{
     var __sbAct = (ViewContext.RouteData.Values["action"] ?? string.Empty).ToString();
 }
 
 <style>
-    /* box-sizing global: evita que el panel fijo (width+padding) se solape con el contenido.
-           Es inofensivo en vistas que ya lo tengan y arregla las que no (p.ej. Avisos). */
     *, *::before, *::after {
         box-sizing: border-box;
     }
 
-    /* === Estilos visuales del panel (auto-contenidos: colores fijos, no dependen del :root de la vista) === */
     .sidebar {
         background: #162232;
         color: #fff;
@@ -117,7 +114,6 @@
         font-size: 13px;
     }
 
-    /* === Carcasa del panel: FIJA e idéntica (sobreescribe el grid de cada vista) === */
     .dashboard {
         display: block !important;
     }
@@ -166,7 +162,9 @@
         <a asp-controller="Administracion" asp-action="Avisos"
            class="menu-item @(__sbAct == "Avisos" ? "active" : "")">📢 Avisos</a>
 
-        <a href="#" class="menu-item">🗺️ Mapa Campus</a>
+        @* ===== ACTUALIZADO: ahora apunta a la acción real del mapa ===== *@
+        <a asp-controller="Administracion" asp-action="Mapa"
+           class="menu-item @(__sbAct == "Mapa" ? "active" : "")">🗺️ Mapa Campus</a>
 
         <a href="#" class="menu-item">✅ Validaciones</a>
 

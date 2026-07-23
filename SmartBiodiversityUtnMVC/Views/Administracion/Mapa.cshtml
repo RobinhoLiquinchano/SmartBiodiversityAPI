@@ -1,0 +1,580 @@
+﻿@{
+    Layout = null;
+    ViewData["Title"] = "Mapa Campus - Smart Biodiversity";
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mapa Campus - Smart Biodiversity</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin="" />
+
+    <style>
+        :root {
+            --bg: #f4f6fa;
+            --sidebar: #162232;
+            --sidebar-light: #223044;
+            --primary: #22c55e;
+            --primary-dark: #16a34a;
+            --blue: #2563eb;
+            --text: #111827;
+            --muted: #6b7280;
+            --card: #ffffff;
+            --border: #e5e7eb;
+            --danger: #dc2626;
+            --radius: 16px;
+            --shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .dashboard { display: block; }
+
+        .main {
+            margin-left: 260px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .topbar {
+            height: 72px;
+            background: white;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 28px;
+        }
+
+        .topbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .topbar-stats {
+            display: flex;
+            gap: 20px;
+        }
+
+        .stat-chip {
+            background: #f0fdf4;
+            color: var(--primary-dark);
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 24px;
+            flex: 1;
+            display: flex;
+            gap: 20px;
+        }
+
+        /* ===== MAPA ===== */
+        .map-container {
+            flex: 1;
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            position: relative;
+            min-height: 600px;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            min-height: 600px;
+        }
+
+        /* ===== PANEL LATERAL DE ESPECIES ===== */
+        .species-panel {
+            width: 420px;
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            display: none;
+            flex-direction: column;
+            max-height: calc(100vh - 120px);
+            overflow: hidden;
+        }
+
+        .species-panel.open {
+            display: flex;
+        }
+
+        .panel-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .panel-header .close-btn {
+            background: none;
+            border: none;
+            font-size: 22px;
+            cursor: pointer;
+            color: var(--muted);
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .panel-header .close-btn:hover {
+            background: #f3f4f6;
+        }
+
+        .panel-summary {
+            display: flex;
+            gap: 12px;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .summary-card {
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            border-radius: 10px;
+        }
+
+        .summary-card.flora {
+            background: #f0fdf4;
+        }
+
+        .summary-card.fauna {
+            background: #eff6ff;
+        }
+
+        .summary-card.total {
+            background: #fefce8;
+        }
+
+        .summary-card .count {
+            font-size: 24px;
+            font-weight: bold;
+            display: block;
+        }
+
+        .summary-card .label {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .panel-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            color: var(--muted);
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-btn:hover {
+            background: #f9fafb;
+        }
+
+        .tab-content {
+            display: none;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .species-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .species-table th {
+            padding: 10px 16px;
+            text-align: left;
+            font-size: 12px;
+            color: var(--muted);
+            background: #f9fafb;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+        }
+
+        .species-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        .species-table tr:hover {
+            background: #f9fafb;
+        }
+
+        .species-img {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #f3f4f6;
+        }
+
+        .empty-msg {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--muted);
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 40px;
+            color: var(--muted);
+        }
+
+        /* ===== LEAFLET MARKER CUSTOM ===== */
+        .custom-marker {
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+
+        .leaflet-popup-content {
+            margin: 12px 16px;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .popup-title {
+            font-weight: bold;
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+
+        .popup-desc {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .popup-btn {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .popup-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        @@media (max-width: 1100px) {
+            .content {
+                flex-direction: column;
+            }
+            .species-panel {
+                width: 100%;
+                max-height: 500px;
+            }
+        }
+
+        @@media (max-width: 900px) {
+            .main {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard">
+    @await Html.PartialAsync("_AdminSidebar")
+
+    <div class="main">
+        <div class="topbar">
+            <div class="topbar-brand">🗺️ Mapa Interactivo de Campus</div>
+            <div class="topbar-stats">
+                <span class="stat-chip" id="totalFacultades">Cargando...</span>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+
+            <div class="species-panel" id="speciesPanel">
+                <div class="panel-header">
+                    <h2 id="panelTitle">Facultad</h2>
+                    <button class="close-btn" onclick="closePanel()">✕</button>
+                </div>
+
+                <div class="panel-summary">
+                    <div class="summary-card flora">
+                        <span class="count" id="countFlora">0</span>
+                        <span class="label">🌿 Flora</span>
+                    </div>
+                    <div class="summary-card fauna">
+                        <span class="count" id="countFauna">0</span>
+                        <span class="label">🦎 Fauna</span>
+                    </div>
+                    <div class="summary-card total">
+                        <span class="count" id="countTotal">0</span>
+                        <span class="label">📊 Total</span>
+                    </div>
+                </div>
+
+                <div class="panel-tabs">
+                    <button class="tab-btn active" onclick="switchTab('flora')">🌿 Flora</button>
+                    <button class="tab-btn" onclick="switchTab('fauna')">🦎 Fauna</button>
+                </div>
+
+                <div class="tab-content active" id="tab-flora">
+                    <div class="loading-spinner">Cargando especies...</div>
+                </div>
+                <div class="tab-content" id="tab-fauna">
+                    <div class="loading-spinner">Cargando especies...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+
+<script>
+    // ============================
+    //  CONFIGURACIÓN
+    // ============================
+    // Ajusta esta URL a tu API desplegada
+    const API_BASE = 'https://smartbiodiversityapi.onrender.com';
+
+    // Centro del mapa: Ibarra, Ecuador (UTN)
+    const MAP_CENTER = [0.2745, -78.5436];
+    const MAP_ZOOM = 14;
+
+    // ============================
+    //  INICIALIZAR MAPA
+    // ============================
+    const map = L.map('map', {
+        center: MAP_CENTER,
+        zoom: MAP_ZOOM,
+        zoomControl: true
+    });
+
+    // Capa OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 19
+    }).addTo(map);
+
+    // ============================
+    //  CARGAR FACULTADES Y CREAR MARCADORES
+    // ============================
+    let markers = [];
+
+    async function loadFacultades() {
+        try {
+            const resp = await fetch(`${API_BASE}/api/Facultades`);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+            const facultades = await resp.json();
+            document.getElementById('totalFacultades').textContent =
+                `🏛️ ${facultades.length} Facultades`;
+
+            facultades.forEach(fac => {
+                // Icono personalizado con conteo
+                const icon = L.divIcon({
+                    className: '',
+                    html: `<div class="custom-marker">${fac.totalEspecies}</div>`,
+                    iconSize: [36, 36],
+                    iconAnchor: [18, 18],
+                    popupAnchor: [0, -20]
+                });
+
+                const marker = L.marker([fac.latitud, fac.longitud], { icon })
+                    .addTo(map);
+
+                // Popup con información básica
+                marker.bindPopup(`
+                    <div class="popup-title">${fac.nombre}</div>
+                    <div class="popup-desc">${fac.descripcion || 'Sin descripción'}</div>
+                    <div style="margin-bottom:8px;font-size:13px;">
+                        <strong>${fac.totalEspecies}</strong> especies registradas
+                    </div>
+                    <button class="popup-btn" onclick="openPanel('${fac.idFacultad}')">
+                        Ver especies →
+                    </button>
+                `, { maxWidth: 280 });
+
+                markers.push(marker);
+            });
+
+            // Ajustar el mapa para mostrar todos los marcadores
+            if (markers.length > 0) {
+                const group = L.featureGroup(markers);
+                map.fitBounds(group.getBounds().pad(0.3));
+            }
+
+        } catch (err) {
+            console.error('Error cargando facultades:', err);
+            document.getElementById('totalFacultades').textContent = '❌ Error cargando';
+        }
+    }
+
+    // ============================
+    //  PANEL LATERAL DE ESPECIES
+    // ============================
+    async function openPanel(idFacultad) {
+        const panel = document.getElementById('speciesPanel');
+        panel.classList.add('open');
+
+        // Mostrar loading
+        document.getElementById('panelTitle').textContent = 'Cargando...';
+        document.getElementById('countFlora').textContent = '...';
+        document.getElementById('countFauna').textContent = '...';
+        document.getElementById('countTotal').textContent = '...';
+        document.getElementById('tab-flora').innerHTML = '<div class="loading-spinner">Cargando especies...</div>';
+        document.getElementById('tab-fauna').innerHTML = '<div class="loading-spinner">Cargando especies...</div>';
+
+        // Activar tab Flora por defecto
+        switchTab('flora');
+
+        try {
+            const resp = await fetch(`${API_BASE}/api/Facultades/${idFacultad}/especies`);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+            const data = await resp.json();
+
+            // Actualizar encabezado
+            document.getElementById('panelTitle').textContent = data.nombreFacultad;
+            document.getElementById('countFlora').textContent = data.totalFlora;
+            document.getElementById('countFauna').textContent = data.totalFauna;
+            document.getElementById('countTotal').textContent = data.totalGeneral;
+
+            // Renderizar tablas
+            document.getElementById('tab-flora').innerHTML = renderSpeciesTable(data.flora);
+            document.getElementById('tab-fauna').innerHTML = renderSpeciesTable(data.fauna);
+
+        } catch (err) {
+            console.error('Error cargando especies:', err);
+            document.getElementById('panelTitle').textContent = 'Error';
+            document.getElementById('tab-flora').innerHTML = '<div class="empty-msg">Error al cargar los datos.</div>';
+            document.getElementById('tab-fauna').innerHTML = '<div class="empty-msg">Error al cargar los datos.</div>';
+        }
+    }
+
+    function renderSpeciesTable(especies) {
+        if (!especies || especies.length === 0) {
+            return '<div class="empty-msg">No hay especies registradas en esta categoría.</div>';
+        }
+
+        let html = `<table class="species-table">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Nombre Común</th>
+                    <th>Nombre Científico</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        especies.forEach(e => {
+            const img = e.imagenUrl
+                ? `<img class="species-img" src="${e.imagenUrl}" alt="${e.nombreComun}" />`
+                : `<div class="species-img" style="display:flex;align-items:center;justify-content:center;">🌱</div>`;
+
+            html += `<tr>
+                <td>${img}</td>
+                <td><strong>${e.nombreComun}</strong></td>
+                <td><em>${e.nombreCientifico}</em></td>
+            </tr>`;
+        });
+
+        html += '</tbody></table>';
+        return html;
+    }
+
+    function closePanel() {
+        document.getElementById('speciesPanel').classList.remove('open');
+    }
+
+    function switchTab(tab) {
+        // Desactivar todos
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+        // Activar el seleccionado
+        document.getElementById(`tab-${tab}`).classList.add('active');
+
+        // Activar botón correspondiente
+        const buttons = document.querySelectorAll('.tab-btn');
+        if (tab === 'flora') buttons[0].classList.add('active');
+        else buttons[1].classList.add('active');
+    }
+
+    // ============================
+    //  INICIAR
+    // ============================
+    document.addEventListener('DOMContentLoaded', loadFacultades);
+</script>
+
+</body>
+</html>
