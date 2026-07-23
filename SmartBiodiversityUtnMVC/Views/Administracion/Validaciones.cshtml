@@ -421,7 +421,14 @@
                 {
                     <div class="alert alert-error">@TempData["Error"]</div>
                 }
-
+                @if (TempData["AporteOk"] is string ok)
+                {
+                    <div class="alert alert-success">@ok</div>
+                }
+                @if (TempData["AporteError"] is string error)
+                {
+                    <div class="alert alert-danger">@error</div>
+                }
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon" style="background: #dbeafe;">📊</div>
@@ -508,18 +515,42 @@
                                             <td><span class="badge @estadoClass">@estadoText</span></td>
                                             <td>
                                                 <div class="btn-group">
+
+                                                    @* Solo se puede aprobar o rechazar si aún está pendiente *@
                                                     @if (aporte.EstadoApo == EstadoAporte.Pendiente)
                                                     {
-                                                        <button class="btn btn-approve" onclick="aprobarAporte('@aporte.IdAporte')">
+                                                        <button type="button"
+                                                                class="btn btn-approve"
+                                                                onclick="aprobarAporte('@aporte.IdAporte')">
                                                             ✅ Aprobar
                                                         </button>
-                                                        <button class="btn btn-reject" onclick="rechazarAporte('@aporte.IdAporte')">
+
+                                                        <button type="button"
+                                                                class="btn btn-reject"
+                                                                onclick="rechazarAporte('@aporte.IdAporte')">
                                                             ❌ Rechazar
                                                         </button>
                                                     }
-                                                    <button class="btn btn-delete" onclick="eliminarAporte('@aporte.IdAporte')">
-                                                        🗑️
-                                                    </button>
+
+                                                    @* Por seguridad y trazabilidad, un aporte aprobado no se elimina *@
+                                                    @if (aporte.EstadoApo != EstadoAporte.Aprobado)
+                                                    {
+                                                        <button type="button"
+                                                                class="btn btn-delete"
+                                                                title="Eliminar aporte"
+                                                                onclick="eliminarAporte('@aporte.IdAporte')">
+                                                            🗑️
+                                                        </button>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="btn btn-delete"
+                                                              style="opacity: 0.45; cursor: not-allowed;"
+                                                              title="Un aporte aprobado no puede eliminarse. Para retirarlo, implemente la opción Archivar.">
+                                                            🔒
+                                                        </span>
+                                                    }
+
                                                 </div>
                                             </td>
                                         </tr>
@@ -576,98 +607,7 @@
                 });
             });
 
-            async function aprobarAporte(id) {
-                if (!confirm('¿Estás seguro de aprobar este aporte? El aporte será marcado como válido y visible para todos los usuarios.')) return;
-
-                const token = getCookie('AccessToken');
-                if (!token) {
-                    alert('No se encontró el token de autenticación. Por favor, inicia sesión nuevamente.');
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`${API_BASE}/api/Aportes/${id}/aprobar`, {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        throw new Error(errorText || `Error ${response.status}`);
-                    }
-
-                    alert('✅ Aporte aprobado exitosamente');
-                    location.reload();
-                } catch (error) {
-                    console.error('Error al aprobar:', error);
-                    alert('Error al aprobar: ' + error.message);
-                }
-            }
-
-            async function rechazarAporte(id) {
-                if (!confirm('¿Estás seguro de rechazar este aporte? El aporte será marcado como inválido y no será visible para los usuarios.')) return;
-
-                const token = getCookie('AccessToken');
-                if (!token) {
-                    alert('No se encontró el token de autenticación. Por favor, inicia sesión nuevamente.');
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`${API_BASE}/api/Aportes/${id}/rechazar`, {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        throw new Error(errorText || `Error ${response.status}`);
-                    }
-
-                    alert('❌ Aporte rechazado');
-                    location.reload();
-                } catch (error) {
-                    console.error('Error al rechazar:', error);
-                    alert('Error al rechazar: ' + error.message);
-                }
-            }
-
-            async function eliminarAporte(id) {
-                if (!confirm('¿Estás seguro de ELIMINAR este aporte? Esta acción no se puede deshacer y el aporte será borrado permanentemente de la base de datos.')) return;
-
-                const token = getCookie('AccessToken');
-                if (!token) {
-                    alert('No se encontró el token de autenticación. Por favor, inicia sesión nuevamente.');
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`${API_BASE}/api/Aportes/${id}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        throw new Error(errorText || `Error ${response.status}`);
-                    }
-
-                    alert('🗑️ Aporte eliminado permanentemente');
-                    location.reload();
-                } catch (error) {
-                    console.error('Error al eliminar:', error);
-                    alert('Error al eliminar: ' + error.message);
-                }
-            }
+            
 
             function verDetalle(aporte) {
                 const estadoClass = aporte.estadoApo === 0 ? "badge-pending" :

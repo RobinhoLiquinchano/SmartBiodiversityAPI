@@ -20,6 +20,63 @@ namespace SmartBiodiversityUtnMVC.Controllers
             _apiClient = apiClient;
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AprobarAporte(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                TempData["AporteError"] = "El identificador del aporte no es válido.";
+                return RedirectToAction(nameof(Validaciones));
+            }
+
+            var ok = await _apiClient.PutAsync($"api/Aportes/{Uri.EscapeDataString(id)}/aprobar");
+
+            TempData[ok ? "AporteOk" : "AporteError"] = ok
+                ? "Aporte aprobado correctamente."
+                : "No se pudo aprobar el aporte. Verifica que tu sesión sea de Administrador y que el aporte siga pendiente.";
+
+            return RedirectToAction(nameof(Validaciones));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RechazarAporte(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                TempData["AporteError"] = "El identificador del aporte no es válido.";
+                return RedirectToAction(nameof(Validaciones));
+            }
+
+            var ok = await _apiClient.PutAsync($"api/Aportes/{Uri.EscapeDataString(id)}/rechazar");
+
+            TempData[ok ? "AporteOk" : "AporteError"] = ok
+                ? "Aporte rechazado correctamente."
+                : "No se pudo rechazar el aporte. Verifica que tu sesión sea de Administrador y que el aporte siga pendiente.";
+
+            return RedirectToAction(nameof(Validaciones));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EliminarAporte(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                TempData["AporteError"] = "El identificador del aporte no es válido.";
+                return RedirectToAction(nameof(Validaciones));
+            }
+
+            var ok = await _apiClient.DeleteAsync($"api/Aportes/{Uri.EscapeDataString(id)}");
+
+            TempData[ok ? "AporteOk" : "AporteError"] = ok
+                ? "Aporte eliminado correctamente."
+                : "No se pudo eliminar el aporte.";
+
+            return RedirectToAction(nameof(Validaciones));
+        }
+
         [HttpGet]
         public async Task<IActionResult> Index()
         {

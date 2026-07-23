@@ -79,6 +79,15 @@ namespace SmartBiodiversityUtnMVC.Services
             return response.IsSuccessStatusCode;
         }
 
+        public async Task<bool> PutAsync(string endpoint)
+        {
+            ConfigurarToken();
+
+            using var request = new HttpRequestMessage(HttpMethod.Put, endpoint);
+            using var response = await _httpClient.SendAsync(request);
+
+            return response.IsSuccessStatusCode;
+        }
         public async Task<bool> DeleteAsync(string endpoint)
         {
             ConfigurarToken();
