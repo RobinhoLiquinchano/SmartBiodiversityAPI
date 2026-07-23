@@ -452,6 +452,7 @@
                                         <th style="width:44px">Foto</th>
                                         <th>Nombre común</th>
                                         <th>Categoría</th>
+                                        <th>Facultad</th>
                                         <th>Estado</th>
                                         <th>Registrado</th>
                                         <th style="text-align:right">Acciones</th>
@@ -479,6 +480,16 @@
                                                 </td>
                                                 <td><strong title="@e.NombreComun">@e.NombreComun</strong></td>
                                                 <td><span class="sb-pill sb-pill-cat">@e.NombreCategoria</span></td>
+                                                <td>
+                                                    @if (!string.IsNullOrEmpty(e.NombreFacultad))
+                                                    {
+                                                        <span class="badge b-fac" style="background:#dbeafe;color:#1e40af;">📍 @e.NombreFacultad</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span style="color:var(--muted);">—</span>
+                                                    }
+                                                </td>
                                                 <td><span class="sb-pill @estPill">@estLabel</span></td>
                                                 <td>@e.FechaRegistroEsp.ToString("dd/MM/yyyy")</td>
                                                 <td style="text-align:right; white-space:nowrap">
@@ -859,6 +870,12 @@
                             <option value="@ViewBag.FaunaId" data-reino="fauna">🦋 Fauna</option>
                         }
                     </select>
+                    <label>
+                        Facultad (opcional)
+                        <select id="sbCreateFacultad" name="FacultadId">
+                            <option value="">-- Sin vincular a facultad --</option>
+                        </select>
+                    </label>
                 </label>
                 <label>Nombre común *<input id="sbCreateNombre" name="NombreComun" required maxlength="150" placeholder="Selecciona una categoría para ver ejemplos" /></label>
                 <label>Nombre científico *<input id="sbCreateCientifico" name="NombreCientifico" required maxlength="150" placeholder="Selecciona una categoría para ver ejemplos" /></label>
@@ -888,6 +905,12 @@
                         <option value="1">Activo</option>
                         <option value="2">Inactivo</option>
                         <option value="3">En revisión</option>
+                    </select>
+                </label>
+                <label>
+                    Facultad (opcional)
+                    <select id="sbEditFacultad" name="FacultadId">
+                        <option value="">-- Sin vincular a facultad --</option>
                     </select>
                 </label>
                 <label>Agregar imagen (opcional)<input type="file" name="archivo" accept="image/*" /></label>
@@ -950,6 +973,45 @@
             function openLightbox(s) { document.getElementById('sbLightboxImg').src = s; document.getElementById('sbLightbox').style.display = 'flex'; }
             function closeLightbox() { document.getElementById('sbLightbox').style.display = 'none'; document.getElementById('sbLightboxImg').src = ''; }
             document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeCreate(); closeEdit(); closeLightbox(); } });
+    </script>
+
+    <script>
+            // ===== Cargar facultades en los selectores =====
+            async function cargarFacultades() {
+                try {
+                    const resp = await fetch('https://smartbiodiversityapi.onrender.com/api/Facultades');
+                    if (!resp.ok) return;
+
+                    const facultades = await resp.json();
+
+                    // Llenar selector de CREAR
+                    const selectCrear = document.getElementById('sbCreateFacultad');
+                    if (selectCrear) {
+                        facultades.forEach(f => {
+                            const opt = document.createElement('option');
+                            opt.value = f.idFacultad;
+                            opt.textContent = f.nombre;
+                            selectCrear.appendChild(opt);
+                        });
+                    }
+
+                    // Llenar selector de EDITAR
+                    const selectEditar = document.getElementById('sbEditFacultad');
+                    if (selectEditar) {
+                        facultades.forEach(f => {
+                            const opt = document.createElement('option');
+                            opt.value = f.idFacultad;
+                            opt.textContent = f.nombre;
+                            selectEditar.appendChild(opt);
+                        });
+                    }
+                } catch (e) {
+                    console.warn('No se pudieron cargar las facultades:', e);
+                }
+            }
+
+            // Cargar al abrir la página
+            document.addEventListener('DOMContentLoaded', cargarFacultades);
     </script>
 </body>
 </html>
