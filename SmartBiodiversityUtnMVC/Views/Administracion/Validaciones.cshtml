@@ -244,6 +244,10 @@
                 gap: 8px;
             }
 
+                .btn-group form {
+                    margin: 0;
+                }
+
             .btn {
                 padding: 6px 12px;
                 border: none;
@@ -427,7 +431,7 @@
                 }
                 @if (TempData["AporteError"] is string error)
                 {
-                    <div class="alert alert-danger">@error</div>
+                    <div class="alert alert-error">@error</div>
                 }
                 <div class="stats-grid">
                     <div class="stat-card">
@@ -515,42 +519,43 @@
                                             <td><span class="badge @estadoClass">@estadoText</span></td>
                                             <td>
                                                 <div class="btn-group">
-
-                                                    @* Solo se puede aprobar o rechazar si aún está pendiente *@
                                                     @if (aporte.EstadoApo == EstadoAporte.Pendiente)
                                                     {
-                                                        <button type="button"
-                                                                class="btn btn-approve"
-                                                                onclick="aprobarAporte('@aporte.IdAporte')">
-                                                            ✅ Aprobar
-                                                        </button>
+                                                        <form asp-controller="Administracion" asp-action="AprobarAporte" method="post">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="id" value="@aporte.IdAporte" />
+                                                            <button type="submit" class="btn btn-approve"
+                                                                    onclick="return confirm('¿Estás seguro de aprobar este aporte?');">
+                                                                ✅ Aprobar
+                                                            </button>
+                                                        </form>
 
-                                                        <button type="button"
-                                                                class="btn btn-reject"
-                                                                onclick="rechazarAporte('@aporte.IdAporte')">
-                                                            ❌ Rechazar
-                                                        </button>
+                                                        <form asp-controller="Administracion" asp-action="RechazarAporte" method="post">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="id" value="@aporte.IdAporte" />
+                                                            <button type="submit" class="btn btn-reject"
+                                                                    onclick="return confirm('¿Estás seguro de rechazar este aporte?');">
+                                                                ❌ Rechazar
+                                                            </button>
+                                                        </form>
                                                     }
 
-                                                    @* Por seguridad y trazabilidad, un aporte aprobado no se elimina *@
                                                     @if (aporte.EstadoApo != EstadoAporte.Aprobado)
                                                     {
-                                                        <button type="button"
-                                                                class="btn btn-delete"
-                                                                title="Eliminar aporte"
-                                                                onclick="eliminarAporte('@aporte.IdAporte')">
-                                                            🗑️
-                                                        </button>
+                                                        <form asp-controller="Administracion" asp-action="EliminarAporte" method="post">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="id" value="@aporte.IdAporte" />
+                                                            <button type="submit" class="btn btn-delete" title="Eliminar aporte"
+                                                                    onclick="return confirm('¿Eliminar permanentemente este aporte?');">
+                                                                🗑️
+                                                            </button>
+                                                        </form>
                                                     }
                                                     else
                                                     {
-                                                        <span class="btn btn-delete"
-                                                              style="opacity: 0.45; cursor: not-allowed;"
-                                                              title="Un aporte aprobado no puede eliminarse. Para retirarlo, implemente la opción Archivar.">
-                                                            🔒
-                                                        </span>
+                                                        <span class="btn btn-delete" style="opacity: .45; cursor: not-allowed;"
+                                                              title="Un aporte aprobado no puede eliminarse.">🔒</span>
                                                     }
-
                                                 </div>
                                             </td>
                                         </tr>
@@ -586,8 +591,6 @@
     </div>
 
     <script>
-            const API_BASE = 'https://smartbiodiversityapi.onrender.com';
-
             // Filtros
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
@@ -670,12 +673,6 @@
                 document.getElementById('detalleModal').classList.remove('open');
             }
 
-            function getCookie(name) {
-                const value = `; ${document.cookie}`;
-                const parts = value.split(`; ${name}=`);
-                if (parts.length === 2) return parts.pop().split(';').shift();
-                return null;
-            }
 
             // Cerrar modal con ESC
             document.addEventListener('keydown', function(e) {
@@ -685,3 +682,5 @@
 
 </body>
 </html>
+
+
