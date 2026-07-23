@@ -14,7 +14,6 @@ var builder = WebApplication.CreateBuilder(args);
 // === CONFIGURACIÓN DE BASE DE DATOS ===
 builder.Services.AddDbContext<SmartBiodiversityUtnContext>(options =>
 {
-    // 1. Intentar obtener desde variable de entorno (usualmente definido en Render)
     var envConnection = Environment.GetEnvironmentVariable("DefaultConnection");
 
     if (!string.IsNullOrWhiteSpace(envConnection))
@@ -24,11 +23,8 @@ builder.Services.AddDbContext<SmartBiodiversityUtnContext>(options =>
     }
     else
     {
-        // 2. Si no, buscar en appsettings.json
-        // Primero buscamos tu clave específica
         var localConnection = builder.Configuration.GetConnectionString("SmartBiodiversityUtnContext");
 
-        // Si no existe, probamos una alternativa genérica por si acaso
         if (string.IsNullOrWhiteSpace(localConnection))
         {
             localConnection = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -51,7 +47,6 @@ builder.Configuration
 
 // SERVICIOS 
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
 // Servicios de autenticación
@@ -64,6 +59,8 @@ builder.Services.AddScoped<IAvisoService, AvisoService>();
 builder.Services.AddHttpClient<IEmailService, EmailService>();
 builder.Services.AddScoped<IBitacoraService, BitacoraService>();
 builder.Services.AddScoped<IUserService, UserService>();
+
+// ====== NUEVO: Servicio de Facultades ======
 builder.Services.AddScoped<IFacultadService, FacultadService>();
 
 // JWT AUTHENTICATION 
@@ -160,6 +157,88 @@ using (var scope = app.Services.CreateScope())
             context.Usuarios.Add(adminUser);
             await context.SaveChangesAsync();
         }
+
+        // ====== NUEVO: SEED FACULTADES UTN ======
+        var facultadesSeed = new List<Facultad>
+        {
+            // ─── Campus El Olivo (principal) ───
+            // Coordenada base del campus: 0.3584, -78.1115 (Waze + Wikipedia)
+            new Facultad
+            {
+                IdFacultad = "FAC-UTN001",
+                NombreFac = "FACAE",
+                Latitud = 0.3586,
+                Longitud = -78.1118,
+                DescripcionFac = "Facultad de Ciencias Administrativas y Económicas - Campus El Olivo"
+            },
+            new Facultad
+            {
+                IdFacultad = "FAC-UTN002",
+                NombreFac = "FECYT",
+                Latitud = 0.3582,
+                Longitud = -78.1112,
+                DescripcionFac = "Facultad de Educación, Ciencia y Tecnología - Campus El Olivo"
+            },
+            new Facultad
+            {
+                IdFacultad = "FAC-UTN004",
+                NombreFac = "FICA",
+                Latitud = 0.3580,
+                Longitud = -78.1120,
+                DescripcionFac = "Facultad de Ingeniería en Ciencias Aplicadas - Campus El Olivo"
+            },
+            new Facultad
+            {
+                IdFacultad = "FAC-UTN006",
+                NombreFac = "CAI",
+                Latitud = 0.3588,
+                Longitud = -78.1110,
+                DescripcionFac = "Centro de Adiestramiento Industrial - Campus El Olivo"
+            },
+
+            // ─── Planta Textil Azaya ───
+            // Coordenada real del Estadio UTN / Azaya: 0.3791, -78.1223 (Waze)
+            new Facultad
+            {
+                IdFacultad = "FAC-UTN003",
+                NombreFac = "FICAYA",
+                Latitud = 0.3791,
+                Longitud = -78.1223,
+                DescripcionFac = "Facultad de Ingeniería en Ciencias Agropecuarias y Ambientales - Planta Textil Azaya"
+            },
+
+            // ─── Campus Ciencias de la Salud ───
+            // Juan Montalvo entre Colón y Velasco: 0.3421, -78.1149 (Waze)
+            new Facultad
+            {
+                IdFacultad = "FAC-UTN005",
+                NombreFac = "CIENCIAS DE LA SALUD",
+                Latitud = 0.3421,
+                Longitud = -78.1149,
+                DescripcionFac = "Facultad de Ciencias de la Salud - Juan Montalvo entre Colón y Velasco"
+            },
+
+            // ─── Campus Posgrado ───
+            // Juan de Velasco entre Juan de Salinas y Juan Montalvo: ~0.3520, -78.1185
+            new Facultad
+            {
+                IdFacultad = "FAC-UTN007",
+                NombreFac = "POSGRADO",
+                Latitud = 0.3520,
+                Longitud = -78.1185,
+                DescripcionFac = "Instituto de Posgrado - Juan de Velasco entre Juan de Salinas y Juan Montalvo"
+            }
+        };
+
+        foreach (var fac in facultadesSeed)
+        {
+            if (!await context.Facultades.AnyAsync(f => f.IdFacultad == fac.IdFacultad))
+            {
+                context.Facultades.Add(fac);
+            }
+        }
+        await context.SaveChangesAsync();
+
     }
     catch (Exception ex)
     {

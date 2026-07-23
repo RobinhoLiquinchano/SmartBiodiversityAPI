@@ -493,10 +493,16 @@
                     {
                         <form asp-controller="Administracion" asp-action="FaunaCreate" method="post" enctype="multipart/form-data" class="form-grid">
                             <input type="hidden" name="CategoriaId" value="@ViewBag.FaunaCategoryId" />
+                            <label>
+                                Facultad (ubicación)
+                                <select name="FacultadId">
+                                    <option value="">-- Sin vincular a facultad --</option>
+                                </select>
+                            </label>
                             <label>Nombre común *<input name="NombreComun" required maxlength="150" placeholder="Ej: Colibrí andino" /></label>
                             <label>Nombre científico *<input name="NombreCientifico" required maxlength="150" placeholder="Ej: Amazilia franciae" /></label>
                             <label>Hábitat *<input name="Habitat" required maxlength="150" placeholder="Ej: Bosque húmedo del campus" /></label>
-                            <label>Imagen (opcional)<input type="file" name="archivo"  accept="image/*" /></label>
+                            <label>Imagen (opcional)<input type="file" name="archivo" accept="image/*" /></label>
                             <label class="full">Descripción<textarea name="Descripcion" rows="6" required maxlength="1000" style="min-height:140px; resize:vertical" placeholder="Características, comportamiento, etc."></textarea></label>
                             <div class="full actions">
                                 <button type="submit" class="btn btn-primary">🦋 Registrar especie</button>
@@ -513,7 +519,7 @@
                         <div class="table-wrap">
                             <table class="tbl">
                                 <thead>
-                                    <tr><th>#</th><th>Foto</th><th>Nombre común</th><th>Nombre científico</th><th>Hábitat</th><th>Estado</th><th>Fecha registro</th><th class="right">Acciones</th></tr>
+                                    <tr><th>#</th><th>Foto</th><th>Nombre común</th><th>Nombre científico</th><th>Hábitat</th><th>Facultad</th><th>Estado</th><th>Fecha registro</th><th class="right">Acciones</th></tr>
                                 </thead>
                                 <tbody>
                                     @{
@@ -624,5 +630,32 @@
                 if (e.key === 'Escape') { closeEdit(); closeLightbox(); }
             });
     </script>
+
+    <script>
+            // ===== Cargar facultades en los selectores =====
+            (async function cargarFacultades() {
+                try {
+                    const API_BASE = 'https://smartbiodiversityapi.onrender.com';
+                    const resp = await fetch(`${API_BASE}/api/Facultades`);
+                    if (!resp.ok) return;
+                    const facultades = await resp.json();
+
+                    // Llenar todos los selectores de facultad que existan en la página
+                    document.querySelectorAll('select[name="FacultadId"]').forEach(function(select) {
+                        facultades.forEach(function(f) {
+                            const opt = document.createElement('option');
+                            opt.value = f.idFacultad;
+                            opt.textContent = f.nombre;
+                            select.appendChild(opt);
+                        });
+                    });
+                } catch(e) {
+                    console.warn('No se pudieron cargar las facultades:', e);
+                }
+            })();
+    </script>
 </body>
 </html>
+
+
+
