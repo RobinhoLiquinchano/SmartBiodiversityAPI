@@ -39,19 +39,6 @@ namespace SmartBiodiversityUtnMVC.Controllers
             return View(especie);
         }
 
-        // Página pública: solo recibe aportes que ya fueron aprobados por un administrador.
-        [HttpGet]
-        public async Task<IActionResult> AportesComunidad()
-        {
-            var aportes = await _apiClient.GetAsync<IEnumerable<AporteResponse>>(
-                "api/Aportes/publicos");
-
-            var aprobados = (aportes ?? Enumerable.Empty<AporteResponse>())
-                .Where(a => a.EstadoApo == EstadoAporte.Aprobado)
-                .OrderByDescending(a => a.FechaAprobacionApo ?? a.FechaCreacionApo)
-                .ToList();
-
-            return View(aprobados);
-        }
+       
     }
 }
