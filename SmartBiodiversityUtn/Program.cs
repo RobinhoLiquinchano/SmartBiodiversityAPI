@@ -239,9 +239,22 @@ using (var scope = app.Services.CreateScope())
 
         foreach (var fac in facultadesSeed)
         {
-            if (!await context.Facultades.AnyAsync(f => f.IdFacultad == fac.IdFacultad))
+            var existente = await context.Facultades
+                .FirstOrDefaultAsync(f => f.IdFacultad == fac.IdFacultad);
+
+            if (existente == null)
             {
+                // No existe → crear
                 context.Facultades.Add(fac);
+            }
+            else
+            {
+                // Ya existe → actualizar campos (por si cambiaste algo en el seed)
+                existente.NumeroFac = fac.NumeroFac;
+                existente.NombreFac = fac.NombreFac;
+                existente.Latitud = fac.Latitud;
+                existente.Longitud = fac.Longitud;
+                existente.DescripcionFac = fac.DescripcionFac;
             }
         }
         await context.SaveChangesAsync();
